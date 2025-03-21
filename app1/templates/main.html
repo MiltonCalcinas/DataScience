@@ -4,7 +4,6 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Data Science</title>
-	<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -381,8 +380,6 @@
 		</div>
 	</div>
 
-
-
 	<div id="tab2" class="tab-content tab2">
 		<p>Opciones de modelos Machine Learning y Deep Learning.</p>
 		<div class="content-box">
@@ -440,8 +437,8 @@
 				<legend>Configurar Grafico</legend>
 				<div class="effect-buttons">
 					<button class="button">Relleno</button>
-					<button class="button">Fondo</button>
-					<button class="button">Tamaño</button>
+					<button class="button">Contorno</button>
+					<button class="button">Efectos</button>
 				</div>
 			</fieldset>
 
@@ -454,7 +451,7 @@
 		<!-- Nueva Caja con 4 pestañas (ocupa el 75% del ancho) -->
 		<div class="new-box" style="width: 75%; float: left; margin-top: 20px;">
 			<div class="tabs">
-				<div class="tab active" onclick="openTab(event, 'tab4')">Pestaña A</div>
+				<div class="tab" onclick="openTab(event, 'tab4')" id="tab4Button">Pestaña A</div>
 				<div class="tab" onclick="openTab(event, 'tab5')">Pestaña B</div>
 				<div class="tab" onclick="openTab(event, 'tab6')">Pestaña C</div>
 				<div class="tab" onclick="openTab(event, 'tab7')">Pestaña D</div>
@@ -525,49 +522,63 @@
 				// Mostrar el contenido de la pestaña seleccionada
 				document.getElementById(tabId).classList.add('active');
 				event.target.classList.add('active');
+				
+				// Si se hace clic en tab3 (pestaña principal), también activar tab4 (subpestaña)
+				if (tabId === "tab3") {
+					// Activar la subpestaña tab4 de la nueva caja
+					const tab4Content = document.getElementById('tab4');
+					const tab4Button = document.querySelector('.new-box .tab[id="tab4Button"]');
+					
+					// Asegurarse de que el contenido de tab4 y el botón de tab4 estén activos
+					if (tab4Content) {
+						tab4Content.classList.add('active');  // Activar el contenido de tab4
+					}
+					if (tab4Button) {
+						tab4Button.classList.add('active');  // Activar el botón de tab4 visualmente
+					}
+				}
 			}
 		}
 
-	const items = [
-		'Manzana',
-		'Banana',
-		'Cereza',
-		'Durazno',
-		'Fresa',
-		'Uva',
-		'Sandía',
-		'Melón'
-    ];
+		const items = [
+			'Manzana',
+			'Banana',
+			'Cereza',
+			'Durazno',
+			'Fresa',
+			'Uva',
+			'Sandía',
+			'Melón'
+		];
 
-    function buscar() {
-		const query = document.getElementById('search').value;
-		const suggestions = document.getElementById('suggestions');
-		suggestions.innerHTML = ''; // Limpiar resultados anteriores
+		function buscar() {
+			const query = document.getElementById('search').value;
+			const suggestions = document.getElementById('suggestions');
+			suggestions.innerHTML = ''; // Limpiar resultados anteriores
 
-		// Si hay algo escrito en el input, buscar coincidencias
-		if (query.length > 0) {
-			const filteredItems = items.filter(item => item.toLowerCase().includes(query.toLowerCase()));
+			// Si hay algo escrito en el input, buscar coincidencias
+			if (query.length > 0) {
+				const filteredItems = items.filter(item => item.toLowerCase().includes(query.toLowerCase()));
 
-			// Si hay resultados, mostrarlos
-			if (filteredItems.length > 0) {
-				suggestions.style.display = 'block';
-				filteredItems.forEach(item => {
-				const li = document.createElement('li');
-				li.textContent = item;
-				li.onclick = function() {
-					document.getElementById('search').value = item;
-					suggestions.style.display = 'none'; // Ocultar resultados al seleccionar uno
-				};
-				suggestions.appendChild(li);
-				});
+				// Si hay resultados, mostrarlos
+				if (filteredItems.length > 0) {
+					suggestions.style.display = 'block';
+					filteredItems.forEach(item => {
+					const li = document.createElement('li');
+					li.textContent = item;
+					li.onclick = function() {
+						document.getElementById('search').value = item;
+						suggestions.style.display = 'none'; // Ocultar resultados al seleccionar uno
+					};
+					suggestions.appendChild(li);
+					});
+				} else {
+					suggestions.style.display = 'none'; // Ocultar el desplegable si no hay resultados
+				}
 			} else {
-				suggestions.style.display = 'none'; // Ocultar el desplegable si no hay resultados
+				suggestions.style.display = 'none'; // Ocultar el desplegable si el campo está vacío
 			}
-		} else {
-			suggestions.style.display = 'none'; // Ocultar el desplegable si el campo está vacío
 		}
-    }
-
 	</script>
 
 </body>
