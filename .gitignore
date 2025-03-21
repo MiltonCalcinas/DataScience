@@ -1,0 +1,10 @@
+# Ignorar el entorno virtual
+venv/
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno y configuraciones locales
+.env

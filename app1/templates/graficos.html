@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+    <select id="tipo_grafico">
+        <option value="" selected disabled>Seleccione un tipo de gráfico</option>
+        <option value="scatter">Dispersión</option>
+        <option value="line">Líneas</option>
+        <option value="bar">Barras</option>
+    </select>
+
+    <div id="grafico"></div>  <!-- Inicialmente vacío -->
+
+    <script>
+    $(document).ready(function() {
+        $('#tipo_grafico').change(function() { // Detecta cambio en el select
+            let tipoGrafico = $(this).val();  // Obtiene el valor seleccionado
+
+            if (tipoGrafico) { // Solo si se ha seleccionado una opción válida
+                $.ajax({
+                    url: '/generar_grafico/',  // URL del backend en Django
+                    type: 'GET',
+                    data: {'tipo': tipoGrafico}, // Envía el tipo de gráfico al backend
+                    success: function(response) {
+                        $('#grafico').html(response.grafico); // Actualiza el HTML del div
+                    },
+                    error: function() {
+                        alert("Error al generar el gráfico.");
+                    }
+                });
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
