@@ -304,3 +304,28 @@ def tipo_de_gráfico(df,tipo_gf,tipo_var,var_x,var_y):
     return fig.to_html(full_html=False)
 
 
+# Función para calcular los valores del box plot
+def calcular_boxplot(grupo):
+    q1,median,q3 =[ np.round(np.percentile(grupo, per),4) for per in range(25,76,25) ]  # cuartiles
+    min_val,max_val = np.round(grupo.min(),4), np.round(grupo.max(),4)  #min y  Máximo
+    iqr = q3 - q1  # Rango intercuartílico
+    lower_bound, upper_bound = q1 - 1.5 * iqr, q3 + 1.5 * iqr # limites
+    outliers = grupo[(grupo < lower_bound) | (grupo > upper_bound)].tolist()  # Detectar outliers
+    return {'min': float(min_val), 'q1': float(q1), 'median': float(median), 'q3': float(q3), 'max': float(max_val), 'outliers': outliers}
+
+# Aplicar la función a cada categoría
+var_x,var_y = 'categoria','variable'
+def calcular_datos_box2(df,var_x,var_y):   
+    dict_por_categoria = df.groupby(var_x)[var_y].apply(calcular_boxplot).to_dict()
+    cat = {}
+    valores = {}
+    for key,values in dict_por_categoria.items():
+        valores[key[1]] = values
+        if key[1]== 'outliers':
+            cat[key[0]] = valores
+            valores = {}
+    # Mostrar resultado
+    print(cat)
+    return cat
+
+

@@ -1,40 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body>
 
-    <select id="tipo_grafico">
+    <!-- <select id="tipo_grafico">
         <option value="" selected disabled>Seleccione un tipo de gráfico</option>
         <option value="scatter">Dispersión</option>
         <option value="line">Líneas</option>
         <option value="bar">Barras</option>
-    </select>
 
-    <div id="grafico"></div>  <!-- Inicialmente vacío -->
+    </select> -->
+
+    <div class="container w-75">
+
+        <canvas id="miGrafico" height="100" width="200"></canvas>
+
+    </div>  <!-- Inicialmente vacío -->
 
     <script>
-    $(document).ready(function() {
-        $('#tipo_grafico').change(function() { // Detecta cambio en el select
-            let tipoGrafico = $(this).val();  // Obtiene el valor seleccionado
-
-            if (tipoGrafico) { // Solo si se ha seleccionado una opción válida
-                $.ajax({
-                    url: '/generar_grafico/',  // URL del backend en Django
-                    type: 'GET',
-                    data: {'tipo': tipoGrafico}, // Envía el tipo de gráfico al backend
-                    success: function(response) {
-                        $('#grafico').html(response.grafico); // Actualiza el HTML del div
+        const ctx = document.getElementById("miGrafico");
+        const labels = Utils.months({count: 7});
+        const data = {
+        labels: labels,
+        datasets: [{
+            label: 'My First Dataset',
+            data: [65, 59, 80, 81, 56, 55, 40],
+            backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(255, 159, 64, 0.2)',
+                            'rgba(255, 205, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(201, 203, 207, 0.2)'
+            ],
+            borderColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(255, 159, 64)',
+                            'rgb(255, 205, 86)',
+                            'rgb(75, 192, 192)',
+                            'rgb(54, 162, 235)',
+                            'rgb(153, 102, 255)',
+                            'rgb(201, 203, 207)'
+            ],
+            borderWidth: 1
+        }]
+        };
+        const config = {
+                    type: 'bar',
+                    data: data,
+                    options: {
+                        scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                        }
                     },
-                    error: function() {
-                        alert("Error al generar el gráfico.");
-                    }
-                });
-            }
-        });
-    });
+                    };
+
+        
+        
+        let myBarChart = new Chart(ctx, config);
+
+        
+
+        console.log("si complila");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // $(document).ready(function() {
+    //     $('#tipo_grafico').change(function() { // Detecta cambio en el select
+    //         let tipoGrafico = $(this).val();  // Obtiene el valor seleccionado
+
+    //         if (tipoGrafico) { // Solo si se ha seleccionado una opción válida
+    //             $.ajax({
+    //                 url: '/generar_grafico/',  // URL del backend en Django
+    //                 type: 'GET',
+    //                 data: {'tipo': tipoGrafico}, // Envía el tipo de gráfico al backend
+    //                 success: function(response) {
+    //                     $('#grafico').html(response.grafico); // Actualiza el HTML del div
+    //                 },
+    //                 error: function() {
+    //                     alert("Error al generar el gráfico.");
+    //                 }
+    //             });
+    //         }
+    //     });
+    // });
     </script>
 
 </body>

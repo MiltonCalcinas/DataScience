@@ -6,13 +6,13 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .models import TablaUsuario
-from .utils.datos  import cargar_desde_db, retornarJSON_tabla, transformar_cols,aplicar_ans,obtener_dict_estadisticos,realizar_entrenamiento,cargar_datos,guardar_datos_usuario,obtener_df,tipo_de_gráfico
+from .utils.datos  import cargar_desde_db, retornarJSON_tabla, transformar_cols,aplicar_ans,obtener_dict_estadisticos,realizar_entrenamiento,cargar_datos,guardar_datos_usuario,obtener_df,calcular_boxplot,calcular_datos_box2
 # Create your views here.
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
 
 def main(request):
-    return render(request,'main.html')
+    return render(request,'grafico_info.html')
 
 
 @csrf_exempt
@@ -127,18 +127,48 @@ def transformar_variables(request):
         return JsonResponse({"error":str(e)},status=500)
     
 
-
-def generar_grafico(request):
+@csrf_exempt
+def obtener_datos_grafico(request):
     if request.method !='POST':
         return JsonResponse({"error":"Método no pemitido"},status=400)
-    tipo = json.loads(request.body).get("tipo")
-    var_x,var_y = json.loads(request.body).get("variables")
-    df = obtener_df(request)
 
-    # gráfico en HTML
-    graph_html = tipo_de_gráfico(df,tipo,var_x,var_y)
+    data = json.loads(request.body)
+    tipo = data.get("tipo")
+    var_y,var_x = data.get("variables",[None,None])
+    if var_y == None :
+        return JsonResponse({"error":"falta seleccionar variables"},status=400)
+    
+    print("llegan los datos",tipo, var_y,var_x)
+    #df = obtener_df(request)
+    shape= 1000
+    df = pd.DataFrame(data = {
+    'Valores': np.random.normal(0,20,shape),
+    'Categoria': np.random.choice(np.array(['A','B','C']),shape,True,[.6,.3,.1]),
+    })
+    result = {}
+    if tipo == 'bar':  # x es la categorica
+        if var_x == None:
+            return JsonResponse({"error":"Falta seleccionar las categorias "},status=400)
+        df_group =  df.groupby([var_x])[var_y].sum()
+        result[var_x],result[var_y] = df_group.index.tolist(), df_group.values.round(4).tolist()
+    elif tipo == 'pie':
+        if df[var_y].dtype == 'float':
+            return JsonResponse({"error": "Debe ser categoriaca"},status=400)
+        df_group = df[var_y].value_counts(True)
+        result['labels'],result[var_y] = df_group.index.tolist(), df_group.values.tolist()
+    elif tipo in ['line','scatter','area']: 
+        if var_x == None :
+            return JsonResponse({"error":"Falta seleccionar una variable para x "},status=400)
+        result[var_x],result[var_y] = df[var_x].tolist(), df[var_y].tolist()
+    elif tipo == 'box':
+        result = calcular_boxplot(df[var_y])
+    elif tipo == 'box_by_category':
+        result = calcular_datos_box2(df,var_x,var_y)
+    else:
+        return JsonResponse({"error":f"No se conoce el gráfico {tipo}."},status=400)
+    return JsonResponse(result) 
 
-    return JsonResponse({'grafico': graph_html})
+
 
 def generar_estadistico(request):
     if request.method !='POST':
@@ -165,14 +195,4 @@ def get_columns_name(request):
     })
 
 
-def configuarar_grafico(request):
-    """ recibo un json con nombre X , y , tipo de grafico  """
-
-    if request.method != 'POST' :
-        return JsonResponse({"error":"Método no permitido"},status=400)
-    
-    df = obtener_df(request)
-    data = json.loads(request.body)
-    tipo = data.get("tipo")
-    var_x,var_y = data.get("variables") # sin no tiene y recibe sin_y
 

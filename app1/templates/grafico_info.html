@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <button id="btn">solicitar datos para graficar </button>
+    <p id="datos"> </p>
+
+
+
+</head>
+<body>
+    <script>
+        // solicitar datos de gráficos
+        function solicitarDatosGrafico(){
+            const url = "{% url 'obtener_datos_grafico' %}";
+            // datos
+            const data = {
+                tipo: "bar",
+                variables: ["Valores","Categoria"],
+            };
+            //solicitud
+            fetch(url, {
+                method: 'POST',  // Método HTTP POST
+                headers: {
+                    'Content-Type': 'application/json',  // Indicar que los datos son en formato JSON
+                },
+                body: JSON.stringify(data)  // Convertir el objeto JavaScript a una cadena JSON
+            })// retorna promesa
+            .then(respose=>respose.json())
+            .then(data=>{ 
+                console.log("Respuesta Recibida:",data);
+                document.getElementById("datos").textContent =JSON.stringify(data,null,2);
+            })
+            .catch(error=>{console.error("Error en la solicitud",error)})
+        }
+
+        document.getElementById("btn").addEventListener("click",solicitarDatosGrafico);
+        // crear un gráfico
+        
+
+    </script>
+</body>
+</html>
