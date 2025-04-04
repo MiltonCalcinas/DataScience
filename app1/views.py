@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .models import TablaUsuario
 from .utils.datos  import cargar_desde_db, retornarJSON_tabla, transformar_cols,aplicar_ans,obtener_dict_estadisticos,realizar_entrenamiento,cargar_datos,guardar_datos_usuario,obtener_df,calcular_boxplot,calcular_datos_box2
-# Create your views here.
+
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
 
@@ -127,6 +127,7 @@ def transformar_variables(request):
         return JsonResponse({"error":str(e)},status=500)
     
 
+# check
 @csrf_exempt
 def obtener_datos_grafico(request):
     if request.method !='POST':
@@ -159,7 +160,7 @@ def obtener_datos_grafico(request):
     elif tipo in ['line','scatter','area']: 
         if var_x == None :
             return JsonResponse({"error":"Falta seleccionar una variable para x "},status=400)
-        result[var_x],result[var_y] = df[var_x].tolist(), df[var_y].tolist()
+        result[var_x],result[var_y] = df[var_x].round(4).tolist(), df[var_y].round(4).tolist()
     elif tipo == 'box':
         result = calcular_boxplot(df[var_y])
     elif tipo == 'box_by_category':
@@ -169,7 +170,7 @@ def obtener_datos_grafico(request):
     return JsonResponse(result) 
 
 
-
+@csrf_exempt
 def generar_estadistico(request):
     if request.method !='POST':
         return JsonResponse({"error":"Método no pemitido"},status=400)
@@ -179,6 +180,7 @@ def generar_estadistico(request):
     return JsonResponse(resultado,status=status)
 
 
+@csrf_exempt
 def entrenar_modelo(request):
     if request.method != 'POST':
         return JsonResponse({"error": "Método no permitido"}, status=400)

@@ -127,13 +127,6 @@ def obtener_df(request):
             engine.dispose()
 
 
-
-
-
-
-
-
-
 def retornarJSON_tabla(df,msg,nrow=10):
     return JsonResponse({
                 "mensaje": f" Datos {msg} correctamente.",
@@ -163,12 +156,18 @@ def aplicar_ans(df,columnas,op,n):
         return DataFrame(linked,columns=[f"clt{i+1}" for i in range(linked.shape[1])])
     
 def obtener_dict_estadisticos(request):
+    print("LLego al back-end")
     try:
         data = json.loads(request.body)
-        columnas = data.get("columnas")
-        estadistico =estadisticos[ data.get("estadistico")]
-        df = obtener_df(request)
-        return df[columnas].apply(estadistico).to_dict(),200
+        columnas = data.get("variables")
+        estadistico =estadisticos[ data.get("tipo")]
+        #df = obtener_df(request)
+        shape= 1000
+        df = DataFrame(data = {
+            'Valores': np.random.normal(0,20,shape),
+            'Categoria': np.random.choice(np.array(['A','B','C']),shape,True,[.6,.3,.1]),
+        })
+        return df[columnas].apply(estadistico).round(4).to_dict(),200
     except json.JSONDecodeError as e:
         return {"error": f"Error en los datos: {str(e)}"},400
     
@@ -182,35 +181,30 @@ def obtener_dict_estadisticos(request):
 def realizar_entrenamiento(request):
     try:
         data = json.loads(request.body)
-        modelos_elegidos = data.get("modelos")  # Nombre de los modelos
+        modelo_elegido = data.get("modelo")  # Nombre de los modelos
         tipo_modelo = data.get("tipo")
-        variable_dependiente = data.get("variable_dependiente")  # Variable dependiente
         
-        if tipo_modelo== "Regresion":
-            scoring= "neg_mean_squared_error"
-        else:
-            scoring="precision"
-
         # Recuperar el DataFrame de la sesión
         df = obtener_df(request) 
-        X = df.drop(columns=[variable_dependiente])
-        y = df[variable_dependiente] 
+        X = df.iloc[:,1:]
+        y = df.iloc[:,0] 
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-        # realizar busqueda           
-        if  not data.get("busqueda") :
-            search,metricas =  busqueda(X_train,y_train,X_test,y_test,modelos_elegidos,data.get("params"),scoring,data.get("busqueda"))
-            return {"busqueda":search,"metricas":metricas},200
+        # realizar busqueda  de los mejor hiperparamtros         
+        if  data.get("busqueda",None) :
+            result_search,codigo =  busqueda(X_train,y_train,X_test,y_test,data)
+            return result_search,codigo
+        
         # metricas sin ajustar hiperparametros        
-        metricas = {}
-        for nombreModelo in modelos_elegidos:          
-            modelo = modelos_dic[nombreModelo]
+        if modelo_elegido in modelos_dic:          
+            modelo = modelos_dic[modelo_elegido]
             modelo.fit(X_train, y_train)
-            metrica = calcular_metricas(modelo,X_test,y_test,tipo_modelo)
-            metricas[f"{nombreModelo}_metrica"] = metrica
-        return metricas,200
-    
+            result_metrica,codigo = calcular_metricas(modelo,X_test,y_test,tipo_modelo)
+            return result_metrica,codigo
+        
+        return {"error": "La opción elegida no es válida"},400
+        
     except json.JSONDecodeError as ex:
         return {"error": f"Error en los datos: {str(ex)}"},400
         
@@ -222,61 +216,67 @@ def calcular_metricas(modelo,X_test,y_test,tipo_modelo):
     y_pred = modelo.predict(X_test)
     y_scores = modelo.predict_proba(X_test)[:,1]
 
-    if tipo_modelo == "Regresion":
+    if tipo_modelo == "regresion":
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
         r2 = r2_score(y_test, y_pred)
-        return {"mse":mse,"rmse":rmse,"R^2": r2}
-    else:
+        return {"mse":mse,"rmse":rmse,"R^2": r2},200
+    elif tipo_modelo == "clasificacion":
         report = classification_report(y_true= y_test,y_pred=y_pred)
         matriz_confusion = confusion_matrix(y_true=y_test,y_pred=y_pred)
         fpr,tpr,_ = roc_curve(y_test,y_scores)
         auc_score = auc(fpr,tpr)
-        return {"report":report,"matriz_confusion":matriz_confusion,"auc_score": auc_score}
-
-
-def busqueda(X_train,y_train,X_test,y_test,modelos_elegidos,hiperparametros,scoring,busqueda):
-    mejores_modelos= {}
-    if busqueda == "GridSearchCV":
-        for nombreModelo in modelos_elegidos:
-            modelo = modelos_dic[nombreModelo]
-            search = GridSearchCV(
-                modelo,
-                hiperparametros,
-                cv=5,
-                scoring=scoring,
-                n_jobs=-1
-            )
-            search.fit(X_train,y_train)
-            mejores_modelos[nombreModelo] ={"best_estamador": search.best_estimator_, 
-                                            "best_params": search.best_params_,
-                                           "best_score": search.best_score_}
-    
+        return {"report":report,"matriz_confusion":matriz_confusion,"auc_score": auc_score},200
     else:
-        for nombreModelo in modelos_elegidos:
-            modelo = modelos_dic[nombreModelo]
-            search = RandomizedSearchCV(
-                modelo,
-                hiperparametros,
-                cv=5,
-                scoring=scoring,
-                n_iter=5,
-                n_jobs=-1
-            )
-            search.fit(X_train,y_train)
-            mejores_modelos[nombreModelo] ={"best_estamador": search.best_estimator_, 
-                                            "best_params": search.best_params_,
-                                           "best_score": search.best_score_}
-    
-    metricas = {}
-    for nombreModelo in mejores_modelos:
-        modelo = mejores_modelos[nombreModelo].get("best_estamador")
-        y_pred = modelo.predict(X_test)
-        mse = mean_squared_error(y_test,y_pred)
-        rmse = np.sqrt(mse)
-        metricas[nombreModelo] = {"mse": mse, "rmse":rmse}
+        return {"error":"No se ha encontrado el modelo elegido"},400
 
-    return mejores_modelos,metricas
+def busqueda(X_train,y_train,X_test,y_test,data):
+
+    modelo_elegido = data.get("modelo")  # Nombre de los modelos
+    hiperparametros = data.get("params")
+    scoring = data.get("scoring")
+    tipo_busqueda = data.get("busqueda")
+    n_iter = data.get("n_iter",5)
+
+    if tipo_busqueda == "GridSearchCV" and modelo_elegido in modelos_dic :
+        modelo = modelos_dic[modelo_elegido]
+        search = GridSearchCV(
+            modelo,
+            hiperparametros,
+            cv=5,
+            scoring=scoring,
+            n_jobs=-1
+        )
+        search.fit(X_train,y_train)
+        result_search = {"best_estamador": search.best_estimator_, 
+                        "best_params": search.best_params_,
+                        "best_score": search.best_score_}
+        best_estimator = search.best_estimator_
+        y_pred = best_estimator.predict(X_test)
+        mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
+        metricas = {"mse": mse, "rmse":rmse}
+        return {"search":result_search,"metricas":metricas},200
+    elif busqueda=="RandomizedSearchCV" and modelo_elegido in modelos_dic:
+        modelo = modelos_dic[modelo_elegido]
+        search = RandomizedSearchCV(
+            modelo,
+            hiperparametros,
+            cv=5,
+            scoring=scoring,
+            n_iter=n_iter,
+            n_jobs=-1
+        )
+        search.fit(X_train,y_train)
+        result_search ={"best_estamador": search.best_estimator_, 
+                                        "best_params": search.best_params_,
+                                        "best_score": search.best_score_}
+        best_estimator = search.best_estimator_
+        y_pred = best_estimator.predict(X_test)
+        mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
+        metricas = {"mse": mse, "rmse":rmse}
+        return {"search":result_search,"metricas":metricas},200
+    else:
+        return {"error": "La opción elegida no es válida"},400
 
 
 
@@ -310,7 +310,7 @@ def calcular_boxplot(grupo):
     min_val,max_val = np.round(grupo.min(),4), np.round(grupo.max(),4)  #min y  Máximo
     iqr = q3 - q1  # Rango intercuartílico
     lower_bound, upper_bound = q1 - 1.5 * iqr, q3 + 1.5 * iqr # limites
-    outliers = grupo[(grupo < lower_bound) | (grupo > upper_bound)].tolist()  # Detectar outliers
+    outliers = grupo[(grupo < lower_bound) | (grupo > upper_bound)].round(4).tolist()  # Detectar outliers
     return {'min': float(min_val), 'q1': float(q1), 'median': float(median), 'q3': float(q3), 'max': float(max_val), 'outliers': outliers}
 
 # Aplicar la función a cada categoría
