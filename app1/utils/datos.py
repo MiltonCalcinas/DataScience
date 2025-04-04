@@ -173,10 +173,6 @@ def obtener_dict_estadisticos(request):
     
 
 
-
-
-
-
 """   recibe un json con modelos: [lista de modelos], tipo: regr o cls  , var_dep: y , test_size, """
 def realizar_entrenamiento(request):
     try:
