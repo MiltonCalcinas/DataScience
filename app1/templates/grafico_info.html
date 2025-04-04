@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Document</title>
 
 
@@ -25,7 +24,6 @@
 
 
     <!--        SOLICITAR GRÁFICOS                                      -->
-    <button id="btn">solicitar datos para graficar </button>
     <p id="datos"> </p>
     
     <!--       COMBOBOX PARA SELECECCIONAR EL TIPO DE DE GRÁFICO         -->
@@ -38,17 +36,15 @@
         <option value="scatter">scatter</option>
         <option value="area">area</option>
     </select>
-    
+    <button id="btn">solicitar datos para graficar </button>
+
     
         
-    <!--        EL GRAFICO-->
-    <div class="container w-75" >
-        <canvas id="miGrafico"></canvas>
-    </div> 
+
 
 
     <!--          SOLICITAR ESTADISTICO            -->
-    <button id="btn-estadistico">solicitar datos de estadistico</button>
+
     <p id="datos-estadisticos"></p>
     <select name="tipo-estadistico" id="tipo-estadistico">
         <option value="media">Media</option>
@@ -58,14 +54,19 @@
         <option value="minimo">Mínimo</option>
         <option value="maximo">Máximo</option>
     </select>
+    <button id="btn-estadistico">solicitar datos de estadistico</button>
+
+
+
+
 
 
     <!--          SOLICITAR ENTRENAMIENTO            -->
-    <button id="btn-entrenamiento">solicitar datos de entrenamiento</button>
     <p id="datos-entrenamiento"></p>
     <select name="tipo-entrenamiento" id="tipo-entrenamiento">
-        <option value="clasificacion">Clasificacion</option>
         <option value="regresion">Regresion</option>
+        <option value="clasificacion">Clasificacion</option>
+
     </select>
 
     <select name="modelo-entrenamiento" id="modelo-entrenamiento">
@@ -74,22 +75,31 @@
         <option value="decision_tree_regressor">Decision Tree Regressor</option>
         <option value="svm_regressor">SVR</option>
         <option value="knn_regressor">KNN</option>
+
+        <option value=logistic_regression> Logistic Regression</option>
+        <option value=random_forest_classifier> Random Forest Classifier</option>
+        <option value=decision_tree_classifier> Decision Tree Classifier</option>
+        <option value=svm_classifier> SVM Classifier</option>
+        <option value=knn_classifier> KNN Classifier</option>
+        <option value=naive_bayes> Naive Bayes</option>
+
     </select>
 
+
+
+    <button id="btn-entrenamiento">solicitar datos de entrenamiento</button>
+
+
+
+
+
+
+
+
     <script>
-        // solicitar datos de gráficos
-        function solicitarDatosGrafico(){
-            const url = "{% url 'obtener_datos_grafico' %}";
-            const select_tipo = document.getElementById("tipo_grafico");
-            const tipo = select_tipo.value;
-            const variables = ["Valores","Categoria"];
-            console.log(tipo)
-            // datos
-            const data = {
-                tipo: tipo,
-                variables: ["Valores","Categoria"],
-            };
-            //solicitud
+        //solicitud
+        function solicitudPOST(url,data){
+            
             fetch(url, {
                 method: 'POST', 
                 headers: {
@@ -100,73 +110,52 @@
             .then(respose=>respose.json())
             .then(data=>{ 
                 console.log("Respuesta Recibida:",data);
-                document.getElementById("datos").textContent =JSON.stringify(data,null,2);
-                 
-                // if(tipo==='bar'){
-                //     crearGraficoBarra(data,variables,tipo);
-                // }
-                
-
+                //document.getElementById("datos-entrenamiento").textContent =JSON.stringify(data,null,2);
             })
             .catch(error=>{console.error("Error en la solicitud",error)})
         }
 
-        document.getElementById("btn").addEventListener("click",solicitarDatosGrafico);
-        
-        function crearGraficoBarra(valores,variables,tipo){
-            // crear un gráfico
-            const ctx = document.getElementById("miGrafico");
-            const var_y = valores[variables[0]];
-            const var_x = valores[variables[1]];
+
+        // solicitar datos de gráficos
+        function solicitarDatosGrafico(){
+            const url = "{% url 'obtener_datos_grafico' %}";
+            const select_tipo = document.getElementById("tipo_grafico");
+            const tipo = select_tipo.value;
+            const variables = ["Valores","Categoria"]; 
+            console.log(tipo)
+            // datos
             const data = {
-                labels:var_x,
-                datasets:[{
-                    label:"Grafico de barras de ",
-                    data:var_y,
-                    borderWidth:1,
-                }]
+                tipo: tipo,
+                variables:["Valores","Valores2"], //y,x
             };
-            const config = {
-                type:tipo,
-                data:data,
-                options:{
-                    scales:{
-                    y:{
-                        beginAtZero: true
-                    }
-                    }
-                }
-                };
-            let chart = new Chart(ctx,config);
+            
+            solicitudPOST(url,data);
+            //Grafico de barras : ["Valores","Categoria"]
+            //Grafico de pie : ["Categoria"]
+            //Grafico box : ["Valores"]
+            //Grafico box with category: ["Valores","Categoria"]
+            //Grafico line,scatter,area : ["Valores","Valores2"]
+   
+
         }
 
+        document.getElementById("btn").addEventListener("click",solicitarDatosGrafico);
+        
+        
 
         // solicitar estadísticos
         function solicitarDatosEstadistico(){
             const url = "{% url 'generar_estadistico' %}";
             const select_tipo = document.getElementById("tipo-estadistico");
             const tipo = select_tipo.value;
-            const variables = ["Valores","Categoria"];
+            const variables = ["Valores"];
             const data = {
                 tipo: tipo,
-                variables:["Valores"]//,"Categoria"]
+                variables:["Valores"] // debe ir 1 o mas variables numericas
             };
-            //solicitud
-            fetch(url, {
-                method: 'POST', 
-                headers: {
-                    'Content-Type': 'application/json',  // Indicar que los datos son en formato JSON
-                },
-                body: JSON.stringify(data)  // Convertir el objeto JavaScript a una cadena JSON
-            })// retorna promesa
-            .then(respose=>respose.json())
-            .then(data=>{ 
-                console.log("Respuesta Recibida:",data);
-                document.getElementById("datos-estadisticos").textContent =JSON.stringify(data,null,2);
 
+            solicitudPOST(url,data);
 
-            })
-            .catch(error=>{console.error("Error en la solicitud",error)})
         
         }
 
@@ -177,39 +166,25 @@
             const url = "{% url 'entrenar_modelo' %}";
             const select_tipo = document.getElementById("tipo-entrenamiento");
             const tipo = select_tipo.value;
-            const select_modelo = select_modelo = document.getElementById("modelo-entrenamiento");
+            const select_modelo = document.getElementById("modelo-entrenamiento");
             const modelo = select_modelo.value;
             const busqueda = "GridSearchCV";
             const params = {};
-            const variables = ["Valores","Categoria"];
             const scoring = "neg_mean_squared_error";
             console.log(tipo)
             // datos
             const data = {
                 tipo: tipo,
                 modelo:modelo,
-                busqueda:busqueda, //opcional 
-                params:params,//opcional 
-                scoring:scoring,//opcional 
-                n_iter,//opcional 
+                // busqueda:busqueda, //opcional 
+                // params:params,//opcional 
+                // scoring:scoring,//opcional 
+                // n_iter,//opcional 
             };
-            //solicitud
-            fetch(url, {
-                method: 'POST', 
-                headers: {
-                    'Content-Type': 'application/json',  // Indicar que los datos son en formato JSON
-                },
-                body: JSON.stringify(data)  // Convertir el objeto JavaScript a una cadena JSON
-            })// retorna promesa
-            .then(respose=>respose.json())
-            .then(data=>{ 
-                console.log("Respuesta Recibida:",data);
-                document.getElementById("datos-entrenamiento").textContent =JSON.stringify(data,null,2);
-
-            })
-            .catch(error=>{console.error("Error en la solicitud",error)})
+            solicitudPOST(url,data);
         }
-
+        
+    
         document.getElementById("btn-entrenamiento").addEventListener("click",solicitarDatosEntrenamiento);
 
     </script>

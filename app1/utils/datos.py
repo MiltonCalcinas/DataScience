@@ -62,7 +62,7 @@ modelos_dic = {
     "knn_regressor": KNeighborsRegressor(),
     
     # Clasificadores
-    "logistic_regression": LogisticRegression(penalty="none",solver="lbfgs"),
+    "logistic_regression": LogisticRegression(),
     "random_forest_classifier": RandomForestClassifier(),
     "decision_tree_classifier": DecisionTreeClassifier(),
     "svm_classifier": SVC(probability=True),
@@ -181,7 +181,18 @@ def realizar_entrenamiento(request):
         tipo_modelo = data.get("tipo")
         
         # Recuperar el DataFrame de la sesión
-        df = obtener_df(request) 
+        #df = obtener_df(request) 
+        size= 1_000
+        # df = DataFrame(data = {
+        #     'y': 50 + 2*np.arange(size) + np.random.normal(0,20,size),
+        #     'x': np.arange(size),
+        # })
+        df = DataFrame(data={
+            'y':np.random.choice(np.array([0,1]),size,replace=True),
+            'x':np.random.normal(0,20,size=size),
+        })
+        
+        print(df.head())
         X = df.iloc[:,1:]
         y = df.iloc[:,0] 
 
@@ -210,18 +221,21 @@ def realizar_entrenamiento(request):
 
 def calcular_metricas(modelo,X_test,y_test,tipo_modelo):
     y_pred = modelo.predict(X_test)
-    y_scores = modelo.predict_proba(X_test)[:,1]
+    print("calculadon metrica.............................................")
 
     if tipo_modelo == "regresion":
-        mse = mean_squared_error(y_test, y_pred)
-        rmse = np.sqrt(mse)
-        r2 = r2_score(y_test, y_pred)
+        mse = round(mean_squared_error(y_test, y_pred),4)
+        rmse = round(np.sqrt(mse),4)
+        r2 = round(r2_score(y_test, y_pred),4)
         return {"mse":mse,"rmse":rmse,"R^2": r2},200
     elif tipo_modelo == "clasificacion":
+        y_scores = modelo.predict_proba(X_test)[:,1]
         report = classification_report(y_true= y_test,y_pred=y_pred)
-        matriz_confusion = confusion_matrix(y_true=y_test,y_pred=y_pred)
+        print(report)
+        matriz_confusion = confusion_matrix(y_true=y_test,y_pred=y_pred).tolist()
+        print(matriz_confusion)
         fpr,tpr,_ = roc_curve(y_test,y_scores)
-        auc_score = auc(fpr,tpr)
+        auc_score = round(auc(fpr,tpr),4)
         return {"report":report,"matriz_confusion":matriz_confusion,"auc_score": auc_score},200
     else:
         return {"error":"No se ha encontrado el modelo elegido"},400
@@ -302,7 +316,7 @@ def tipo_de_gráfico(df,tipo_gf,tipo_var,var_x,var_y):
 
 # Función para calcular los valores del box plot
 def calcular_boxplot(grupo):
-    q1,median,q3 =[ np.round(np.percentile(grupo, per),4) for per in range(25,76,25) ]  # cuartiles
+    q1,median,q3 = [ np.round(np.percentile(grupo, per),4) for per in range(25,76,25) ]  # cuartiles
     min_val,max_val = np.round(grupo.min(),4), np.round(grupo.max(),4)  #min y  Máximo
     iqr = q3 - q1  # Rango intercuartílico
     lower_bound, upper_bound = q1 - 1.5 * iqr, q3 + 1.5 * iqr # limites
@@ -310,7 +324,7 @@ def calcular_boxplot(grupo):
     return {'min': float(min_val), 'q1': float(q1), 'median': float(median), 'q3': float(q3), 'max': float(max_val), 'outliers': outliers}
 
 # Aplicar la función a cada categoría
-var_x,var_y = 'categoria','variable'
+
 def calcular_datos_box2(df,var_x,var_y):   
     dict_por_categoria = df.groupby(var_x)[var_y].apply(calcular_boxplot).to_dict()
     cat = {}

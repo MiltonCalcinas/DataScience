@@ -42,9 +42,6 @@ def cargar_datos(request):
 
     
 
-
-
-
 @csrf_exempt
 def filtrar(request):
     if request.method != "POST":
@@ -98,7 +95,6 @@ def elegir_filas(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-
 @csrf_exempt
 def transformar_variables(request):
     if request.method !='POST':
@@ -135,7 +131,10 @@ def obtener_datos_grafico(request):
 
     data = json.loads(request.body)
     tipo = data.get("tipo")
-    var_y,var_x = data.get("variables",[None,None])
+    variables= data.get("variables",[None,None])
+    var_y = variables[0]
+    var_x = variables[1] if len(variables)==2 else None
+    
     if var_y == None :
         return JsonResponse({"error":"falta seleccionar variables"},status=400)
     
@@ -145,6 +144,7 @@ def obtener_datos_grafico(request):
     df = pd.DataFrame(data = {
     'Valores': np.random.normal(0,20,shape),
     'Categoria': np.random.choice(np.array(['A','B','C']),shape,True,[.6,.3,.1]),
+    'Valores2': np.arange(shape)
     })
     result = {}
     if tipo == 'bar':  # x es la categorica
@@ -160,7 +160,10 @@ def obtener_datos_grafico(request):
     elif tipo in ['line','scatter','area']: 
         if var_x == None :
             return JsonResponse({"error":"Falta seleccionar una variable para x "},status=400)
-        result[var_x],result[var_y] = df[var_x].round(4).tolist(), df[var_y].round(4).tolist()
+        elif df[var_x].dtype =='object' or df[var_y].dtype =='object':
+            return JsonResponse({"error","las variables deben ser numéricas"},status=400)
+        else:
+            result[var_x],result[var_y] = df[var_x].round(4).tolist(), df[var_y].round(4).tolist()
     elif tipo == 'box':
         result = calcular_boxplot(df[var_y])
     elif tipo == 'box_by_category':
@@ -188,7 +191,7 @@ def entrenar_modelo(request):
     resumen,status = realizar_entrenamiento(request)
     return JsonResponse(resumen,status=status)
 
-
+@csrf_exempt
 def get_columns_name(request):
     df = obtener_df(request=request)
     columns = list(df.columns)
