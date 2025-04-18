@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.db import connection
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,text
 from pandas import read_sql
 import numpy as np
 import pandas as pd
@@ -124,18 +124,20 @@ def obtener_conexion_mysql():
     try:
         url =VAR_CONEXION_CLIENTE["URL"]
         engine = create_engine(url)
+        print(VAR_CONEXION_CLIENTE["URL"])
 
         # Testear la conexión
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         return engine
     except Exception as err:
         raise ValueError(f"Error al conectar con MySQL: {err}")
 
 
 
-def crear_tabla( df, engine,tabla_ans=None):
+def crear_tabla( df, engine):
     nombre_tabla = VAR_CONEXION_CLIENTE["NOMBRE_TABLA"]
+    print(df.head())
     try:
         df.to_sql(nombre_tabla, con=engine, if_exists='replace', index=False)
     except Exception as ex:

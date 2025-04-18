@@ -104,8 +104,10 @@ if(event.key!="Enter"){
 }
 
 const filtro = inputFiltrar.value;
+const persistente = true;
 const data = {
     filtro: filtro,
+    persistente:persistente
 };
 const url = "/app1/filtrar/";
 

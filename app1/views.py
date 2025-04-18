@@ -32,11 +32,12 @@ def cargar_datos(request):
             ruta =  data.get("ruta")
             sep = data.get("sep")
             df = pd.read_csv(ruta,sep=sep)
+            
         else:
             df = datos.importar_desde_db(data)
 
         df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
-
+        
         
         nombre_tabla = data.get("nombre_tabla")
         usuario = data.get("usuario_db")
@@ -45,7 +46,7 @@ def cargar_datos(request):
         datos.guardar_datos_usuario(usuario, password, base_datos,nombre_tabla)
 
         conexion = datos.obtener_conexion_mysql()
-        datos.crear_tabla(nombre_tabla, df, conexion) # crea la tabla e inserta los datos
+        datos.crear_tabla( df,conexion) # crea la tabla e inserta los datos
         conexion.dispose()
 
         return datos.retornarJSON_tabla(df,msg="cargados y guardados",nrow=10)
@@ -67,12 +68,13 @@ def filtrar(request):
     # SI ES POST filtrará LA TABLA
     try:
         data = json.loads(request.body)
+        print(data)
         filtro = data.get("filtro")
         persistente = data.get("persistente") # boolean
         df = datos.select_df()
         df_filtrado = df.query(filtro)
         if persistente == True: 
-            conexion = data.obtener_conexion_mysql()
+            conexion = datos.obtener_conexion_mysql()
             datos.actualizar_dataframe(df,conexion)
             conexion.dispose()
         return datos.retornarJSON_tabla(df_filtrado,msg="filtrados")
