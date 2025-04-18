@@ -1,0 +1,270 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Estilo del título */
+.page-title {
+    text-align: center;
+    font-size: 24px;
+    padding: 20px;
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Estilo para los botones */
+.button {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Estilo para los botones dentro de los fieldsets */
+fieldset .effect-buttons,
+fieldset .font-buttons {
+    display: flex;
+    justify-content: center; /* Alinea los botones al centro */
+    gap: 10px; /* Espacio entre los botones */
+}
+
+fieldset button {
+    padding: 8px 16px; /* Ajusta el tamaño del botón */
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Estilo de las filas */
+.row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+/* Elimina el margen inferior de la última fila */
+.content-box .row:last-child {
+    margin-bottom: 0;
+}
+
+.row select, .row .empty-space {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+    flex: 1; /* Permite que todos los elementos dentro de la fila ocupen el mismo espacio */
+}
+
+.row .search-container {
+    padding-right: 18px;
+    width: 100%;
+    flex: 1; /* Permite que todos los elementos dentro de la fila ocupen el mismo espacio */
+}
+
+.search-container {
+    position: relative;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px 10px;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+    font-size: 16px;
+}
+
+/* Estilos para el desplegable de resultados */
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none; /* Por defecto no se muestra */
+    list-style-type: none; /* Eliminar bullets */
+    padding: 0; /* Eliminar padding */
+    margin: 0; /* Eliminar margin */
+}
+
+.suggestions li {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.suggestions li:hover {
+    background-color: #f0f0f0;
+}
+
+/* Estilo para el espacio vacío */
+/* .row .empty-space {
+    visibility: hidden;
+} */
+
+/* Estilo de la tabla */
+.table-container {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid #ccc;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+/* Nueva caja de botones en 2 filas de 4 */
+.new-box .button-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Cuatro columnas */
+    grid-gap: 0 10px;
+}
+
+/* Estilo de los botones cuadrados */
+.square-button {
+    margin: 15%;
+    padding: 30%;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Estilo de los botones */
+.button {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Estilo para texto en negrita */
+.bold {
+    font-weight: bold;
+}
+
+/* Estilo para texto en cursiva */
+.italic {
+    font-style: italic;
+}
+
+/* Estilo para texto subrayado */
+.underline {
+    text-decoration: underline;
+}
+
+/* Estilo de las pestañas */
+.tabs {
+    display: flex;
+    cursor: pointer;
+    background-color: #f1f1f1;
+    border: 1px solid #ccc;
+}
+
+.tab {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-right: none;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease;
+}
+
+.tab:hover {
+    background-color: #ddd;
+}
+
+.tab.active {
+    background-color: #4CAF50;
+    color: white;
+    font-weight: bold;
+}
+
+/* Contenido de cada pestaña */
+.tab-content {
+    display: none;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Estilo de la caja en la pestaña 2 */
+.tab2 .content-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr; /* Establece tres columnas */
+    grid-template-rows: auto auto; /* Asegura que haya dos filas para que el textarea las ocupe */
+    gap: 10px; /* Espacio entre columnas */
+}
+
+/* Estilo de el textarea en la pestaña 2 */
+.tab2 .content-box textarea {
+    grid-row: span 2; /* Hace que el textarea ocupe dos filas */
+    width: 100%; /* Asegura que el textarea ocupe todo el ancho disponible */
+    height: 100%; /* Se asegura de que ocupe el alto disponible */
+    resize: none !important; /* Deshabilita la opción de redimensionar */
+    box-sizing: border-box; /* Garantiza que los padding y bordes no afecten el tamaño */
+}
+
+/* Estilo de la caja en la pestaña 3 */
+.tab3 .content-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr; /* Cuatro columnas */
+    grid-gap: 10px; /* Espacio entre columnas */
+}
+
+/* Aplica el layout de columna solo en la primera y cuarta columna */
+.tab3 .content-box > div:first-child,
+.tab3 .content-box > div:nth-child(4) {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Estilo de la caja que contiene los elementos */
+.content-box {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-top: 20px;
+    background-color: #f9f9f9;
+}
+
+/* Estilo de los elementos dentro de la caja */
+.content-box input,
+.content-box select {
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%; /* Hace que los elementos ocupen todo el espacio disponible en cada celda */
+}

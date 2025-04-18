@@ -6,17 +6,18 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 import pandas as pd
 from .models import TablaUsuario
-from .utils.datos  import cargar_desde_db, retornarJSON_tabla, transformar_cols,aplicar_ans,obtener_dict_estadisticos,realizar_entrenamiento,cargar_datos,guardar_datos_usuario,obtener_df,calcular_boxplot,calcular_datos_box2
-
+from .utils import datos  # 
+import re
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
 
 def main(request):
-    return render(request,'grafico_info.html')
-
+    return render(request,'main.html')
 
 @csrf_exempt
 def cargar_datos(request):
+    """     conectarse al SGDB que donde el cliente almacene sus datos    """
+
     if  request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
     
@@ -24,35 +25,55 @@ def cargar_datos(request):
     try:
         data = json.loads(request.body)
         fuente= data.get("fuente")
+        
         if fuente == "csv":
-            ruta =  request.POST.get("ruta")
-            df = pd.read_csv(ruta,sep=",")
+            ruta =  data.get("ruta")
+            sep = data.get("sep")
+            df = pd.read_csv(ruta,sep=sep)
         else:
-            df = cargar_desde_db(data)
-        # probleema en la conexion
-        if len(df) == 0:
-            return JsonResponse({"error": "Problema en la conexion"}, status=500)
-        # guardar en mi base de mysql      
-        guardar_datos_usuario(request,data.get("nombre_tabla"))
-        cargar_datos(df,request)
-        return retornarJSON_tabla(df,msg="cargados y guardados",nrow=10)
+            df = datos.importar_desde_db(data)
+
+        df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
+
+        
+        nombre_tabla = data.get("nombre_tabla")
+        usuario = data.get("usuario_db")
+        password = data.get("password_db")
+        base_datos = data.get("nombre_db")
+        datos.guardar_datos_usuario(usuario, password, base_datos,nombre_tabla)
+
+        conexion = datos.obtener_conexion_mysql()
+        datos.crear_tabla(nombre_tabla, df, conexion) # crea la tabla e inserta los datos
+        conexion.dispose()
+
+        return datos.retornarJSON_tabla(df,msg="cargados y guardados",nrow=10)
     
     except json.JSONDecodeError:
         return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
-
+    except ValueError as ex:
+        return JsonResponse({"error": str(ex)}, status=400)
+    except Exception as ex:
+        return JsonResponse({"error": f"Error inesperado: {str(ex)}"}, status=500)
     
 
 @csrf_exempt
 def filtrar(request):
+    """          filtra filas segun el valor propocinado por el campo filtrar               """
     if request.method != "POST":
         return JsonResponse({"error","Método no permitido"},status=400)
     
     # SI ES POST filtrará LA TABLA
     try:
-        filtro = json.loads(request.body).get("filtro")
-        df = obtener_df(request)
+        data = json.loads(request.body)
+        filtro = data.get("filtro")
+        persistente = data.get("persistente") # boolean
+        df = datos.select_df()
         df_filtrado = df.query(filtro)
-        return retornarJSON_tabla(df_filtrado,msg="filtrados")
+        if persistente == True: 
+            conexion = data.obtener_conexion_mysql()
+            datos.actualizar_dataframe(df,conexion)
+            conexion.dispose()
+        return datos.retornarJSON_tabla(df_filtrado,msg="filtrados")
     except json.JSONDecodeError:
         return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
     except Exception as e:
@@ -66,33 +87,20 @@ def elegir_columnas(request):
     # recibe un json con {"columnas": [col1,col2,etc]}
     try:
         data = json.loads(request.body)
-        columnas = data.get("columnas",[])
-        df = obtener_df(request)
-        if not columnas: # si no está vacio
+        columnas = data.get("columnas",None)
+        df = datos.select_df()
+        if columnas: 
             df = df[columnas]
-            cargar_datos(df,request)        # actualiza dataframe de session
-        return retornarJSON_tabla(df,msg="eliminados")
+            conexion = datos.obtener_conexion_mysql()
+            datos.actualizar_dataframe(df,conexion)
+            conexion.dispose()      # actualiza dataframe de session
+        return datos.retornarJSON_tabla(df,msg="eliminados")
+    
     except json.JSONDecodeError:
           return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-
-@csrf_exempt
-def elegir_filas(request):
-    if request.method != "POST":
-        return JsonResponse({"error","Método no permitido"},status=400)
-
-    try:
-        filtro = json.loads(request.body).get("filtro")
-        df = obtener_df(request)
-        df = df.query(filtro)
-        cargar_datos(df,request)       # actualiza dataframe de session
-        return retornarJSON_tabla(df,msg="eliminados")
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt
@@ -103,20 +111,12 @@ def transformar_variables(request):
     """ recibe un json con el nombre la columna y el tipo de operacion del combo box """
     try:
         data = json.loads(request.body)
-        columnas = data.get("columnas")
-        df = obtener_df(request)
-        
-        if data.get("tipo") == "ANS":
-            n = data.get("n_components")
-            cols= aplicar_ans(df,columnas,operacion,n)
-            df.drop(columns=columnas,inplace=True)
-            df = df.concat([df,cols],axis=1)
-        else:   
-            operacion =  data.get("operacion")
-            df[columnas] = transformar_cols(df,columnas,operacion)
-        """actualizo la tabla"""
-        cargar_datos(df,request)        # actualiza dataframe de session
-        return retornarJSON_tabla(df,"transformados")
+ 
+        if data.get("tipo") == "ANS": df = datos.aplicar_ans(data)
+        else: df = datos.transformar_cols(data)
+
+        return datos.retornarJSON_tabla(df,"transformados")
+    
     except json.JSONDecodeError:
         return JsonResponse({"error": "Error al procesar los datos JSON"},status=400)    
     except Exception as e:
@@ -139,13 +139,9 @@ def obtener_datos_grafico(request):
         return JsonResponse({"error":"falta seleccionar variables"},status=400)
     
     print("llegan los datos",tipo, var_y,var_x)
-    #df = obtener_df(request)
-    shape= 1000
-    df = pd.DataFrame(data = {
-    'Valores': np.random.normal(0,20,shape),
-    'Categoria': np.random.choice(np.array(['A','B','C']),shape,True,[.6,.3,.1]),
-    'Valores2': np.arange(shape)
-    })
+    df = datos.select_df()
+
+
     result = {}
     if tipo == 'bar':  # x es la categorica
         if var_x == None:
@@ -165,9 +161,9 @@ def obtener_datos_grafico(request):
         else:
             result[var_x],result[var_y] = df[var_x].round(4).tolist(), df[var_y].round(4).tolist()
     elif tipo == 'box':
-        result = calcular_boxplot(df[var_y])
+        result = datos.calcular_boxplot(df[var_y])
     elif tipo == 'box_by_category':
-        result = calcular_datos_box2(df,var_x,var_y)
+        result = datos.calcular_datos_box2(df,var_x,var_y)
     else:
         return JsonResponse({"error":f"No se conoce el gráfico {tipo}."},status=400)
     return JsonResponse(result) 
@@ -177,8 +173,8 @@ def obtener_datos_grafico(request):
 def generar_estadistico(request):
     if request.method !='POST':
         return JsonResponse({"error":"Método no pemitido"},status=400)
-    
-    resultado,status = obtener_dict_estadisticos(request)
+    data = json.loads(request.body)
+    resultado,status = datos.obtener_dict_estadisticos(data)
     
     return JsonResponse(resultado,status=status)
 
@@ -188,13 +184,15 @@ def entrenar_modelo(request):
     if request.method != 'POST':
         return JsonResponse({"error": "Método no permitido"}, status=400)
     
-    resumen,status = realizar_entrenamiento(request)
+    data = json.loads(request.body)
+    resumen,status = datos.realizar_entrenamiento(data)
     return JsonResponse(resumen,status=status)
 
 @csrf_exempt
 def get_columns_name(request):
-    df = obtener_df(request=request)
+    df = datos.select_df()
     columns = list(df.columns)
+    
     return JsonResponse({
         "columnas": columns
     })

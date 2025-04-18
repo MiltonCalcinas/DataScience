@@ -1,7 +1,10 @@
 from django.shortcuts import get_object_or_404
+from django.db import connection
+
 from sqlalchemy import create_engine
 from pandas import read_sql
 import numpy as np
+import pandas as pd
 from pandas import DataFrame, read_json
 from django.http import JsonResponse
 import plotly.express as px
@@ -26,7 +29,10 @@ from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
 
 from app1.models import TablaUsuario 
 
+import mysql.connector
 
+
+VAR_CONEXION_CLIENTE = {}
 
 sgbd = {
     "MySQL": lambda user, password, db, host: f"mysql+pymysql://{user}:{password}@{host}/{db}",
@@ -70,12 +76,19 @@ modelos_dic = {
     "naive_bayes": GaussianNB(),
 }
 
+tipo_grafico_dic = {
+    'scatter': px.scatter,
+    'line': px.line,
+    'area': px.area,
+    'box': px.box,
+    'bar':px.bar,
+    'pie':px.pie,
+}
 
 
 
 
-
-def cargar_desde_db(data):
+def importar_desde_db(data):
     fuente = data.get("fuente")
     nombre_tabla = data.get("nombre_tabla")
     usuario= data.get("usuario")
@@ -95,29 +108,66 @@ def cargar_desde_db(data):
             engine.dispose()
 
 
-def guardar_datos_usuario(request,nombre_tabla):
-    tabla, _ = TablaUsuario.objects.update_or_create(
-        usuario=request.user.username,
-        defaults={"nombre_tabla": nombre_tabla}
-    )
+def guardar_datos_usuario(usuario, contraseña, base_datos,nombre_tabla, host="localhost", puerto=3306):        
+    VAR_CONEXION_CLIENTE["USER"] = usuario
+    VAR_CONEXION_CLIENTE["PASSWORD"] = contraseña
+    VAR_CONEXION_CLIENTE["HOST"] = host
+    VAR_CONEXION_CLIENTE["PUERTO"] = puerto
+    VAR_CONEXION_CLIENTE["BASEDATOS"] = base_datos
+    VAR_CONEXION_CLIENTE["NOMBRE_TABLA"] = nombre_tabla
+    VAR_CONEXION_CLIENTE["URL"] =  f"mysql+pymysql://{usuario}:{contraseña}@{host}:{puerto}/{base_datos}"
 
 
-def cargar_datos(df,request):
+
+
+def obtener_conexion_mysql():
     try:
-        nombre_tabla =  get_object_or_404(TablaUsuario, usuario=request.user.username).nombre_tabla
-        engine = create_engine("mysql+pymysql://root:root@localhost/bd_dataframes")
-        df.to_sql(name=nombre_tabla,con=engine,if_exists='replace',index=False)
-        print(f"Los datos se han cargado en la tabla '{nombre_tabla}' de la base de datos.")
-    except Exception as e:
-        print({"error": f"Error al guardar la tabla del usuario a la base de datos: {str(e)}"})
-    finally:
-        if engine is not None:
-            engine.dispose()
+        url =VAR_CONEXION_CLIENTE["URL"]
+        engine = create_engine(url)
 
-def obtener_df(request):
+        # Testear la conexión
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return engine
+    except Exception as err:
+        raise ValueError(f"Error al conectar con MySQL: {err}")
+
+
+
+def crear_tabla( df, engine,tabla_ans=None):
+    nombre_tabla = VAR_CONEXION_CLIENTE["NOMBRE_TABLA"]
     try:
-        nombre_tabla =  get_object_or_404(TablaUsuario, usuario=request.user.username).nombre_tabla
-        engine = create_engine("mysql+pymysql://root:root@localhost/bd_dataframes")
+        df.to_sql(nombre_tabla, con=engine, if_exists='replace', index=False)
+    except Exception as ex:
+        raise ValueError(f"Error al crear la tabla: {str(ex)}")
+
+
+        
+def actualizar_dataframe(df, engine, modo="replace"):
+    """
+    Actualiza los datos en una tabla MySQL usando SQLAlchemy.
+
+    Parámetros:
+    - df: DataFrame con los datos
+    - nombre_tabla: nombre de la tabla
+    - engine: conexión SQLAlchemy
+    - modo: 'append' para añadir, 'replace' para eliminar e insertar, 'fail' para lanzar error si ya existe
+    """
+    if modo not in ["append", "replace", "fail"]:
+        raise ValueError(f"Modo '{modo}' no válido. Usa 'append', 'replace' o 'fail'.")
+
+    nombre_tabla = VAR_CONEXION_CLIENTE["NOMBRE_TABLA"]
+    try:
+        df.to_sql(nombre_tabla, con=engine, if_exists=modo, index=False)
+    except Exception as ex:
+        raise ValueError(f"Error al insertar datos: {str(ex)}")
+
+
+def select_df():
+    try:
+        nombre_tabla =  VAR_CONEXION_CLIENTE["NOMBRE_TABLA"]
+        url = VAR_CONEXION_CLIENTE["URL"]
+        engine = create_engine(url)
         df = read_sql(f"SELECT * FROM {nombre_tabla}",engine)
         return df
     except Exception as ex:
@@ -135,72 +185,83 @@ def retornarJSON_tabla(df,msg,nrow=10):
                 })
 
 
-def transformar_cols(df,columnas,op):
-    transformador = transformadores[op]
-    return df[columnas].apply(transformador)
+def transformar_cols(data):
+    columnas = data.get(columnas)
+    op = data.get(op)
+    df = select_df()
+    func = transformadores[op]
+    array = func(df[columnas])
+    new_cols = [f"{op}_{col}" for col in columnas]
+    new_cols = new_cols[0] if len(new_cols)==1 else new_cols
+    df[new_cols] = array
+    conexion = obtener_conexion_mysql()
+    crear_tabla(df,conexion)
+    conexion.dispose()
+    return df
 
-def aplicar_ans(df,columnas,op,n):
+def aplicar_ans(data):
+    df = select_df()
+    columnas = data.get(columnas)
+    op = data.get(op)
+    
+
     if op == "PCA":
         scaler= StandardScaler()
         scaledX = scaler.fit_transform(df[columnas])
-        
-        pca= PCA(n_components=n,random_state=42)
+        n_componentes = data.get(n_componentes)
+        pca= PCA(n_components=n_componentes,random_state=42)
         X_pca = pca.fit_transform(scaledX)
-        return DataFrame(X_pca,columns=[ f"comp{i+1}" for i in range(X_pca.shape[1])])
+        df = pd.DataFrame(X_pca,columns=[ f"comp{i+1}" for i in range(X_pca.shape[1])])
+
     elif op == "Kmeans":
-        kmeans = KMeans(n_clusters=n,random_state=42)
+        n_clusters = data.get(n_clusters)
+        kmeans = KMeans(n_clusters=n_clusters,random_state=42)
         kmeans_labels = kmeans.fit_predict(scaledX).reshape(-1,1)
-        return DataFrame(kmeans_labels,columns=["cluster"])
-    else:
+        df["cluster"] = kmeans_labels
+        
+    elif op == "linkage":
         linked = linkage(scaledX, method='ward')
-        return DataFrame(linked,columns=[f"clt{i+1}" for i in range(linked.shape[1])])
+        clusters =  pd.DataFrame(linked,columns=[f"clt{i+1}" for i in range(linked.shape[1])])
+        df[clusters.columns] = clusters.values
     
-def obtener_dict_estadisticos(request):
+    conexion = obtener_conexion_mysql()
+    crear_tabla(df,conexion)
+    conexion.dispose()
+    return df
+
+
+def obtener_dict_estadisticos(data):
+    """             son funcioens resumenes             """
     print("LLego al back-end")
     try:
-        data = json.loads(request.body)
+        
         columnas = data.get("variables")
-        estadistico =estadisticos[ data.get("tipo")]
-        #df = obtener_df(request)
-        shape= 1000
-        df = DataFrame(data = {
-            'Valores': np.random.normal(0,20,shape),
-            'Categoria': np.random.choice(np.array(['A','B','C']),shape,True,[.6,.3,.1]),
-        })
-        return df[columnas].apply(estadistico).round(4).to_dict(),200
+        func =estadisticos[ data.get("tipo")]
+        df = select_df()
+        array_resumen = func(df[columnas])
+        return array_resumen.round(4).to_dict(),200
     except json.JSONDecodeError as e:
         return {"error": f"Error en los datos: {str(e)}"},400
     
 
 
 """   recibe un json con modelos: [lista de modelos], tipo: regr o cls  , var_dep: y , test_size, """
-def realizar_entrenamiento(request):
+def realizar_entrenamiento(data):
     try:
-        data = json.loads(request.body)
         modelo_elegido = data.get("modelo")  # Nombre de los modelos
         tipo_modelo = data.get("tipo")
-        
-        # Recuperar el DataFrame de la sesión
-        #df = obtener_df(request) 
-        size= 1_000
-        # df = DataFrame(data = {
-        #     'y': 50 + 2*np.arange(size) + np.random.normal(0,20,size),
-        #     'x': np.arange(size),
-        # })
-        df = DataFrame(data={
-            'y':np.random.choice(np.array([0,1]),size,replace=True),
-            'x':np.random.normal(0,20,size=size),
-        })
-        
+        busqueda = data.get("busqueda") # Boolean
+        df = select_df()
+
         print(df.head())
         X = df.iloc[:,1:]
         y = df.iloc[:,0] 
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-        # realizar busqueda  de los mejor hiperparamtros         
-        if  data.get("busqueda",None) :
-            result_search,codigo =  busqueda(X_train,y_train,X_test,y_test,data)
+        # PREGUNTA SI EXISTE BUSQUEDA    
+        if  busqueda == True :
+            result_search,codigo =  realizar_busqueda(X_train,y_train,X_test,y_test,data)
             return result_search,codigo
         
         # metricas sin ajustar hiperparametros        
@@ -240,20 +301,20 @@ def calcular_metricas(modelo,X_test,y_test,tipo_modelo):
     else:
         return {"error":"No se ha encontrado el modelo elegido"},400
 
-def busqueda(X_train,y_train,X_test,y_test,data):
+def realizar_busqueda(X_train,y_train,X_test,y_test,data):
 
     modelo_elegido = data.get("modelo")  # Nombre de los modelos
     hiperparametros = data.get("params")
     scoring = data.get("scoring")
-    tipo_busqueda = data.get("busqueda")
-    n_iter = data.get("n_iter",5)
+    tipo_busqueda = data.get("tipo_busqueda")
+    cv = data.get("cv")
 
     if tipo_busqueda == "GridSearchCV" and modelo_elegido in modelos_dic :
         modelo = modelos_dic[modelo_elegido]
         search = GridSearchCV(
             modelo,
             hiperparametros,
-            cv=5,
+            cv=cv,
             scoring=scoring,
             n_jobs=-1
         )
@@ -266,12 +327,13 @@ def busqueda(X_train,y_train,X_test,y_test,data):
         mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
         metricas = {"mse": mse, "rmse":rmse}
         return {"search":result_search,"metricas":metricas},200
-    elif busqueda=="RandomizedSearchCV" and modelo_elegido in modelos_dic:
+    elif tipo_busqueda =="RandomizedSearchCV" and modelo_elegido in modelos_dic:
+        n_iter = data.get("n_iter")
         modelo = modelos_dic[modelo_elegido]
         search = RandomizedSearchCV(
             modelo,
             hiperparametros,
-            cv=5,
+            cv=cv,
             scoring=scoring,
             n_iter=n_iter,
             n_jobs=-1
@@ -291,27 +353,6 @@ def busqueda(X_train,y_train,X_test,y_test,data):
 
 
 
-tipo_grafico_dic = {
-    'scatter': px.scatter,
-    'line': px.line,
-    'area': px.area,
-    'box': px.box,
-    'bar':px.bar,
-    'pie':px.pie,
-}
-
-
-def tipo_de_gráfico(df,tipo_gf,tipo_var,var_x,var_y):
-
-    if var_y != 'sin_y'  and tipo_var == 'numerico':
-        fig = tipo_grafico_dic[tipo_gf](df,var_x,var_y,title=f'Gráfico de {var_y}')
-    if var_y !='sin_y' and tipo_var == 'categorico':
-        data_grouped = df.groupby(var_x)[var_y].sum().reset_index()
-        fig = tipo_grafico_dic[tipo_gf](data_grouped,var_x,var_y,title=f'Gráfico de {var_y}')
-
-    
-    fig.update_layout(width=600) 
-    return fig.to_html(full_html=False)
 
 
 # Función para calcular los valores del box plot
@@ -337,5 +378,27 @@ def calcular_datos_box2(df,var_x,var_y):
     # Mostrar resultado
     print(cat)
     return cat
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
