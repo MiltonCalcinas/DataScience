@@ -59,11 +59,19 @@ async function cargar_datos() {
     const ruta = "C:\\Users\\alfredo\\Desktop\\Milton\\Repositorio\\repositorio-django\\DataScience\\ventas_ficticias.csv";
     const url = "/app1/cargar_datos/";
     const sep = ";";
-
+    const usuario_db="cliente";
+    const password_db="cliente1234";
+    const nombre_tabla="ventas_ficticias";
+    const base_datos="data_frames";
+    
     const data = {
         fuente: fuente,
         ruta: ruta,
-        sep: sep,
+        usuario_db: usuario_db,
+        password_db:password_db,
+        nombre_tabla: nombre_tabla,
+        base_datos:base_datos,
+        sep:sep,
     };
 
     console.log("Enviando solicitud a:", url, "con data:", data);
@@ -78,35 +86,35 @@ async function cargar_datos() {
 }
 
 function añadir_columnas_section(columnas,id){
-    section = document.getElementById(id);
-    section.innerHTML="";
-    columnas.forEach(col=>{
-        const option = document.createElement("option");
-        option.textContent = col;
-        option.value=col;
-        section.appendChild(option);
-    }
+section = document.getElementById(id);
+section.innerHTML="";
+columnas.forEach(col=>{
+    const option = document.createElement("option");
+    option.textContent = col;
+    option.value=col;
+    section.appendChild(option);
+}
 
-    )
+)
 }
 
 async function filtrar_datos(event){
-    if(event.key!="Enter"){
-        return null;
-    }
+if(event.key!="Enter"){
+    return null;
+}
 
-    const filtro = inputFiltrar.value;
-    const data = {
-        filtro: filtro,
-    };
-    const url = "/app1/filtrar/";
+const filtro = inputFiltrar.value;
+const data = {
+    filtro: filtro,
+};
+const url = "/app1/filtrar/";
 
-    const tabla_datos_filtrado = await solicitudPOST(url,data);
-    console.log("solicitud de filtro enviada",filtro);
+const tabla_datos_filtrado = await solicitudPOST(url,data);
+console.log("solicitud de filtro enviada",filtro);
 
-    if(tabla_datos_filtrado){ 
-        mostrarTabla(tabla_datos_filtrado)
-    }
+if(tabla_datos_filtrado){ 
+    mostrarTabla(tabla_datos_filtrado)
+}
 
 }
 

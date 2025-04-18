@@ -21,9 +21,11 @@ def cargar_datos(request):
     if  request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
     
+    
     # SI ES POST OBTENDRÁ LA TABLA
     try:
         data = json.loads(request.body)
+        print(data)
         fuente= data.get("fuente")
         
         if fuente == "csv":
@@ -39,7 +41,7 @@ def cargar_datos(request):
         nombre_tabla = data.get("nombre_tabla")
         usuario = data.get("usuario_db")
         password = data.get("password_db")
-        base_datos = data.get("nombre_db")
+        base_datos = data.get("base_datos")
         datos.guardar_datos_usuario(usuario, password, base_datos,nombre_tabla)
 
         conexion = datos.obtener_conexion_mysql()
