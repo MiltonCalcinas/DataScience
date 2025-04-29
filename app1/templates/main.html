@@ -277,6 +277,67 @@
 			border-radius: 5px;
 			width: 100%; /* Hace que los elementos ocupen todo el espacio disponible en cada celda */
 		}
+
+
+		/* oculta la ventana emergente  (Conexion a base de datos)*/
+		.popup,.popup2,.popup3 {
+            display: none; /* Oculta la ventana por defecto */
+            position: fixed;
+            z-index: 1;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro */
+            }
+
+            .popup-contenido {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            position: relative;
+            text-align: center;
+            }
+
+
+            .cerrar {
+            position: absolute;
+            top: 10px; right: 15px;
+            color: #aaa;
+            font-size: 28px;
+            cursor: pointer;
+            }
+            .cerrar:hover {
+            color: black;
+            }
+
+
+            .formulario {
+            display: grid;
+            grid-template-rows: auto auto auto;
+            gap: 15px;
+            width: 300px;
+            margin: 0 auto; /* Centra el formulario */
+            }
+
+            .fila {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+			align-items: center;
+			height: 30px;
+            }
+			.fila input{
+				width: 130px;
+				padding: 10px;
+				border: #4CAF50 solid 1px;
+				border-radius: 8px;
+				
+			}
+            .fila.boton {
+            display: flex;
+            justify-content: center;
+            }
 	</style>
 
 </head>
@@ -298,7 +359,7 @@
 		<div class="content-box">
 			<!-- Fila 1: 5 dropdownlists -->
 			<div class="row">
-				<select id="SGDB">
+				<select id="SGDB" title="Selecciona la funente de datos">
 					<option value="" hidden>Cargar Datos (fuente)</option>
 					<option value="csv">Archivo CSV</option>
 					<option value="excel">Archivo Excel</option>
@@ -311,10 +372,10 @@
 					<option value="1">Columna 1</option>
 					<option value="2">Columna 2</option>
 					<option value="3">Columna 3</option>
-
+				
 				</select>
-				<select>
-					<option value="" hidden>Transformar Variables</option>
+				<select title="Aplica una función (p.e. log) a cada valor de las columnas seleccionadas">
+					<option value="" hidden >Transformar Variables</option>
 					<option value="ln">ln</option>
 					<option value="log10">log10</option>
 					<option value="sqrt">sqrt</option> <!--  raiz cuadrada-->
@@ -322,15 +383,14 @@
 					<option value="square">square</option> <!--  potencia al cuadrado-->
 					<option value="abs">abs</option>
 				</select>
-				<select>
+				<select title="Genera gráficos de 2 dimensiones">
 					<option value="" hidden>Generar Gráficos</option>
-					<option value="bar">Barra</option>
-					<option value="pie">Pie</option>
-					<option value="line">Line</option>
-					<option value="scatter">Scatter</option>
-					<option value="area">Area</option>
-					<option value="box">Box Plot</option>
-					<option value="box_by_category">Box by Category</option>
+					<option value="bar"		title="Selecciona variable categórica">Barra</option>
+					<option value="pie"		title="Selecciona variable categórica">Pie</option>
+					<option value="line"	title="Selecciona 2 Variables numéricas">Line</option>
+					<option value="area"	title="Selecciona 2 Variables numéricas">Area</option>
+					<option value="box"		title="Selecciona 1 Variable numérica">Box Plot</option>
+					<option value="box_by_category"	title="Selecciona 1 variable numérica y otra categórica">Box by Category</option>
 				</select>
 				<select id="variable_dependiente">
 					<option value="" hidden>Variable Dependiente</option>
@@ -512,10 +572,82 @@
 				<button class="square-button">B8</button>
 			</div>
 		</div>
-	
-	</div>
 
+	</div>
+<!--				VENTANA EMERGENTE PARA CONECTARSE A LA BASE DE DATOS DEL CLIENTE -->
+	<div id="popup" class="popup">
+        <div class="popup-contenido">
+            <span class="cerrar">&times;</span>        
+            <h2>Conectar Con Base de datos</h2> 
+            <form action="##" method="post" id="credenciales" class="formulario">
+                <div class="fila">
+                  <label for="usuario">Usuario</label>
+                  <input type="text" name="usuario" id="usuario" placeholder="Ej: Milton Calcinas">
+                </div>
+              
+                <div class="fila">
+                  <label for="pass">Password</label>
+                  <input type="password" name="pass" id="pass">
+                </div>
+              
+                <div class="fila">
+                  <label for="host">Host</label>
+                  <input type="text" name="host" id="host" placeholder="Ej: localhost">
+                </div>
+              
+                <div class="fila">
+                  <label for="puerto">Puerto</label>
+                  <input type="text" name="puerto" id="puerto">
+                </div>
+              
+                <div class="fila">
+                  <label for="bd">Base de datos</label>
+                  <input type="text" name="bd" id="bd">
+                </div>
+				<div class="fila">
+						<label for="nombre_tabla">Tabla</label>
+						<input type="text" name="nombre_tabla" id="nombre_tabla">
+				</div>
+                <div class="fila boton">
+                  <input type="submit" value="Conectar" name="enviar" id="enviar_formulario_bbdd">
+                </div>
+              </form>
+              
+        </div>
+    </div>
+<!--		SELECCIONAR EL ARCHIvo  CSV donde el cliente tiene sus datos  -->
+    <div id="popup2" class="popup2">
+        <div class="popup-contenido">
+            <span class="cerrar" >&times;</span>
+            <div class="formulario" id="formulario_csv">
+				<h2>Cargar Archivo CSV </h2>
+					<input type="file" id="file_csv" name="file">
+				<div class="fila">
+					<label for="sep">Delimitador</label>
+					<input type="text" name="sep" id="sep" placeholder="Ej: , ; "	>
+				</div>
+				<div class="fila boton">
+                 <input type="submit" name="enviar" id="enviar_formulario_csv" value="Cargar Archivo">
+				</div>
+            </div>
+        </div>
+    </div>
+	<!--		SELECCIONAR EL ARCHIOV EXCEL donde el cliente tiene sus datos  -->
+
+	<div id="popup3" class="popup3">
+        <div class="popup-contenido">
+            <span class="cerrar" >&times;</span>
+            <form class="formulario">
+				<h2>Cargar Archivo CSV </h2>
+					<input type="file" id="file_excel" name="file">
+				<div class="fila boton">
+                 <input type="submit" name="enviar" id="enviar_enviar_formulario_excel" value="Cargar Archivo">
+				</div>
+            </form>
+        </div>
+    </div>
 	<script>
+
 		function openTab(event, tabId) {
 			// Si estamos dentro de la nueva caja en la tercera pestaña, controlar las subpestañas
 			if (event.target.closest('.new-box')) {

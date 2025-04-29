@@ -3,7 +3,12 @@ from django.urls import path
 from django.shortcuts import render
 
 urlpatterns= [
-    path('',views.main,name='main'),
+    path('',views.home,name='home'),
+    path('signup/',views.signup,name='signup'),
+    path('main/',views.main,name='main'),
+    path('signout/',views.signout,name='signout'),
+    path('signin/',views.signin,name='signin'),
+    path('create_task/',views.create_task,name='create_task'),
     path('cargar_datos/',views.cargar_datos,name='cargar_datos'),
     path('filtrar/',views.filtrar,name='filtrar'),
     path('elegir_columnas/',views.elegir_columnas,name='elegir_columnas'),

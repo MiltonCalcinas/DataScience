@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Tarea</title>
+</head>
+<body>
+    {{ error }}
+    <form action="{% url 'create_task' %}" method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <button>Anotar Tarea</button>
+    </form>
+</body>
+</html>

@@ -1,53 +1,180 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 import numpy as np
-from sklearn.linear_model import LinearRegression
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
+from django.contrib.auth.models import User
+from django.contrib.auth import login,logout,authenticate
+from django.db import IntegrityError
 import pandas as pd
-from .models import TablaUsuario
 from .utils import datos  # 
+from .forms import TaskForm
 import re
+import os
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
+def home(request):
+    return render(request,'home.html')
 
+def create_task(request):
+    if request.method == 'GET':
+        return render(request,'create_task.html',{
+            'form': TaskForm(),
+        })
+    else:
+        try:
+            print("--- Datos del Formulario de la Tarea")
+            print(request.POST)
+            form =TaskForm(request.POST) # form en html rellenado
+            new_task = form.save(commit=False) # no guarda en bbdd y retorna el form
+            new_task.user = request.user
+            new_task.save()# 
+            print(new_task)
+            return render(request,'create_task.html',{
+                'form': TaskForm(),
+            })
+        except ValueError:
+            return render(request,'create_task.html',{
+            'form': TaskForm(),
+            'error': "Error al crear la tarea"
+            }) 
+    
+def signout(request):
+    logout(request)
+    return redirect('home')
+
+def signin(request):
+    if request.method == 'GET':
+        return render(request,'signin.html',{
+            'form': AuthenticationForm,
+        })
+    
+    elif request.method == 'POST':
+        print("Inicio de sesióon")
+        print(request.POST)
+        user = authenticate(request,
+                      username=request.POST.get("username"),
+                      password=request.POST.get("password")
+                      )
+        if user is None:
+            return render(request,'signin.html',{
+                'form':AuthenticationForm,
+                'error':'El usuario o la contraseña no existen'
+            })
+        else:
+            login(request,user) #cookies
+            return redirect('main')
+    
+
+def signup(request):
+
+    # Cliente entra en la página
+    if request.method == 'GET':
+        print("El cliente a visitado la página")
+        print('Datos del GET:')
+        print(request.GET)
+        
+        return render(request,'signup.html',{
+            'form':UserCreationForm,
+        })
+
+
+    if request.method == 'POST':
+        print('El cliente ha enviado el formulario')
+        print('Datos del POST:')
+        print(request.POST)
+
+        if request.POST['password1'] != request.POST['password2']:
+            return render(request,'signup.html',{
+                'form': UserCreationForm,
+                'error': 'Las contraseñas no coinciden'
+                })
+        
+        else:
+            print("las contraseañas coinciden")
+            try:
+                user = User.objects.create_user(
+                        username=request.POST.get("username"),
+                        password=request.POST.get("password1")
+                    )
+                user.save()
+                login(request,user)
+                return redirect(to='main')
+            except IntegrityError:
+                return render(request,'signup.html',{
+                    'form': UserCreationForm,
+                    'error': "El usuario ya existe"
+                })
+            
+        
 def main(request):
     return render(request,'main.html')
 
 @csrf_exempt
 def cargar_datos(request):
-    """     conectarse al SGDB que donde el cliente almacene sus datos    """
 
+    print("--- Función View: /cargar_datos")
     if  request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
     
     
-    # SI ES POST OBTENDRÁ LA TABLA
+    
     try:
-        data = json.loads(request.body)
-        print(data)
-        fuente= data.get("fuente")
+        print("--- Obteniendo Fuente")    
+        fuente =  request.POST.get("fuente")
         
         if fuente == "csv":
-            ruta =  data.get("ruta")
-            sep = data.get("sep")
-            df = pd.read_csv(ruta,sep=sep)
-            
-        else:
+
+            print("--- Recibiendo: Archivo CSV (binario)")
+            file =  request.FILES.get("file")
+            sep = request.POST.get("sep")
+            df = pd.read_csv(file,sep=sep)
+            nombre_tabla = os.path.splitext(os.path.basename(file))[0]
+            print("nombre tabla",nombre_tabla)
+        elif fuente == "excel":
+
+            print("--- Recibiendo: Archivo Excel (binario)")
+            file = request.FILES.get("file")
+            sheet_name = request.POST.get("sheet_name")
+            df = pd.read_excel(file,sheet_name=sheet_name)
+            nombre_tabla = os.path.splitext(os.path.basename(file))[0]
+            print("nombre tabla",nombre_tabla)
+
+        elif fuente == "SGBD":
+
+            print("--- Recibienddo: credenciales para conectarse a SGBD")
+            data = json.loads(request.body)
             df = datos.importar_desde_db(data)
 
+            nombre_tabla = data.get("nombre_tabla")
+            print("nombre tabla",nombre_tabla)
+
+            usuario = data.get("usuario_db")
+            password = data.get("password_db")
+            base_datos = data.get("base_datos")
+            
+            datos.guardar_datos_usuario(usuario, 
+                                        password, 
+                                        base_datos,
+                                        nombre_tabla)
+        else:
+            print("--- ❌ La fuente de datos No es la correcta")
+            raise Exception("La Fuente de BBDD seleccionada no es Válida. ")
+
+        print("---✅ Datos")
+        df.info()
+        
+        print("--- BBDD Ha lleado al BackEnd", "\n--- Limpiando Columnas con carácteres Raros")
         df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
         
-        
-        nombre_tabla = data.get("nombre_tabla")
-        usuario = data.get("usuario_db")
-        password = data.get("password_db")
-        base_datos = data.get("base_datos")
-        datos.guardar_datos_usuario(usuario, password, base_datos,nombre_tabla)
+        print("--- Guardando BBDD en nuestro Servidor")
+        datos.crear_db_clientes(nombre_tabla)
 
         conexion = datos.obtener_conexion_mysql()
         datos.crear_tabla( df,conexion) # crea la tabla e inserta los datos
         conexion.dispose()
+        print("--- ✅ Guardado Correctamente")
 
         return datos.retornarJSON_tabla(df,msg="cargados y guardados",nrow=10)
     
@@ -134,42 +261,37 @@ def obtener_datos_grafico(request):
         return JsonResponse({"error":"Método no pemitido"},status=400)
 
     data = json.loads(request.body)
-    tipo = data.get("tipo")
-    variables= data.get("variables",[None,None])
-    var_y = variables[0]
-    var_x = variables[1] if len(variables)==2 else None
+    tipo = data.get("tipo") # categorico , numerico , continuo
     
-    if var_y == None :
-        return JsonResponse({"error":"falta seleccionar variables"},status=400)
-    
-    print("llegan los datos",tipo, var_y,var_x)
+
     df = datos.select_df()
 
 
     result = {}
-    if tipo == 'bar':  # x es la categorica
-        if var_x == None:
-            return JsonResponse({"error":"Falta seleccionar las categorias "},status=400)
-        df_group =  df.groupby([var_x])[var_y].sum()
-        result[var_x],result[var_y] = df_group.index.tolist(), df_group.values.round(4).tolist()
-    elif tipo == 'pie':
-        if df[var_y].dtype == 'float':
-            return JsonResponse({"error": "Debe ser categoriaca"},status=400)
-        df_group = df[var_y].value_counts(True)
-        result['labels'],result[var_y] = df_group.index.tolist(), df_group.values.tolist()
-    elif tipo in ['line','scatter','area']: 
-        if var_x == None :
-            return JsonResponse({"error":"Falta seleccionar una variable para x "},status=400)
-        elif df[var_x].dtype =='object' or df[var_y].dtype =='object':
-            return JsonResponse({"error","las variables deben ser numéricas"},status=400)
-        else:
-            result[var_x],result[var_y] = df[var_x].round(4).tolist(), df[var_y].round(4).tolist()
-    elif tipo == 'box':
-        result = datos.calcular_boxplot(df[var_y])
-    elif tipo == 'box_by_category':
-        result = datos.calcular_datos_box2(df,var_x,var_y)
+    if tipo == 'categorico':  # bar, pie
+        variable_categorica = data.get("variable_categorica")
+        freq = df[variable_categorica].value_counts(normalize=False,sort=True,ascending=True)
+        label = freq.index.tolist()
+        valores = freq.values.round(4).tolist()
+        result["label"],result["valores"] = label,valores
+
+    # ['line','scatter','area']
+    elif tipo == "numerico": 
+       var_x,var_y = data.get("variables_numericas")
+       df.sort_values([var_x],ascending=True,inplace=True)
+       result["var_x"],result["var_y"] = df[var_x].values.tolist(),df[var_y].values.tolist()
+    
+    elif tipo == "continuo":
+        var_continua = data.get("variable_continua")
+        result["valores"] = df[var_continua].values.tolist()
+    
+    elif tipo == "continuo_categorico":
+        var_continua, var_categorica = data.get("variables")
+        agrupado = df.groupby(var_categorica)[var_continua].apply(list).to_dict()
+        result = agrupado
     else:
-        return JsonResponse({"error":f"No se conoce el gráfico {tipo}."},status=400)
+        JsonResponse({"error":f"No se reconoce {tipo} como un tipo de variable/s reconocible"})
+    
     return JsonResponse(result) 
 
 

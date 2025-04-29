@@ -27,12 +27,25 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import  confusion_matrix, classification_report,roc_curve, auc, r2_score,mean_squared_error
 from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
 
-from app1.models import TablaUsuario 
 
 import mysql.connector
-
+import re
 
 VAR_CONEXION_CLIENTE = {}
+VAR_CONEXION_SERVIDOR = {
+    "USER": "cliente",
+    "PASSWORD": "cliente1234",
+    "HOST": "localhost",
+    "PUERTO": 3306,
+    "DB": "db_clientes",
+    "URL":  f"mysql+mysqlconnector://cliente:1234cliente@localhost"
+  
+}
+
+
+
+
+
 
 sgbd = {
     "MySQL": lambda user, password, db, host: f"mysql+pymysql://{user}:{password}@{host}/{db}",
@@ -90,16 +103,18 @@ tipo_grafico_dic = {
 
 def importar_desde_db(data):
     fuente = data.get("fuente")
-    nombre_tabla = data.get("nombre_tabla")
+
     usuario= data.get("usuario")
     password = data.get("password")
     base_de_datos =data.get("db")
     host = data.get("host")
+    consulta = data.get("consulta")
+
     try:
         str_engine = sgbd[fuente](usuario, password, base_de_datos,host)
         print(str_engine)
         engine = create_engine(str_engine)
-        return read_sql(f"SELECT * FROM {nombre_tabla}",engine)
+        return read_sql(consulta,engine)
     except Exception as e:
         print({"error": f"Error de conexión a la base de datos: {str(e)}"})
         return DataFrame()
@@ -115,16 +130,30 @@ def guardar_datos_usuario(usuario, contraseña, base_datos,nombre_tabla, host="l
     VAR_CONEXION_CLIENTE["PUERTO"] = puerto
     VAR_CONEXION_CLIENTE["BASEDATOS"] = base_datos
     VAR_CONEXION_CLIENTE["NOMBRE_TABLA"] = nombre_tabla
-    VAR_CONEXION_CLIENTE["URL"] =  f"mysql+pymysql://{usuario}:{contraseña}@{host}:{puerto}/{base_datos}"
 
 
+def crear_db_clientes(nombre_tabla,df):
+    db_suffix = np.random.randint(1_000_000, 9_999_999) # Crear nombre aleatorio para la base de datos
+    db_name = f"db_clientes_{db_suffix}"
 
+    engine_root = create_engine(VAR_CONEXION_SERVIDOR["URL"])
+    
+    with engine_root.connect() as conn:
+        conn.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+
+    engine = create_engine(f"{VAR_CONEXION_SERVIDOR['URL']}/{db_name}")
+    df.to_sql(name=nombre_tabla, con=engine, if_exists='replace', index=False)
+
+    print(f"DataFrame guardado en la base de datos '{db_name}' en la tabla 'clientes'")
+    
 
 def obtener_conexion_mysql():
     try:
-        url =VAR_CONEXION_CLIENTE["URL"]
+        print("++ Obteniendo conexión con MySQL para almacenar datos en nuestro servidor")
+        url =VAR_CONEXION_SERVIDOR["URL"]
         engine = create_engine(url)
-        print(VAR_CONEXION_CLIENTE["URL"])
+        print("Variable de conexión con MySQL (servidor)")
+        print(url)
 
         # Testear la conexión
         with engine.connect() as conn:
