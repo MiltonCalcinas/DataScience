@@ -1,6 +1,7 @@
 from . import views
 from django.urls import path
 from django.shortcuts import render
+from .views import SignupView, SigninView
 
 urlpatterns= [
     path('',views.home,name='home'),
@@ -17,4 +18,6 @@ urlpatterns= [
     path('generar_estadistico/', views.generar_estadistico, name='generar_estadistico'),
     path('entrenar_modelo/',views.entrenar_modelo,name='entrenar_modelo'),
     path('nombre_columnas/',views.get_columns_name,name='nombre_columnas'),
+    path('api/signup/', SignupView.as_view(), name='api_signup'),
+    path('api/signin/', SigninView.as_view(), name='api_signin'),
 ]

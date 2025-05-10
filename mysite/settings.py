@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app1',
+    'rest_framework',
+    'rest_framework.authtoken',  # para autenticación por token
 ]
 
 MIDDLEWARE = [
@@ -123,3 +125,10 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR,"app1/static"),)
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}

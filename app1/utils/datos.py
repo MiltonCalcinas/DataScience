@@ -38,7 +38,7 @@ VAR_CONEXION_SERVIDOR = {
     "HOST": "localhost",
     "PUERTO": 3306,
     "DB": "db_clientes",
-    "URL":  f"mysql+mysqlconnector://cliente:1234cliente@localhost"
+    "URL":  f"mysql+mysqlconnector://cliente:cliente1234@localhost/",
   
 }
 
@@ -48,10 +48,11 @@ VAR_CONEXION_SERVIDOR = {
 
 
 sgbd = {
-    "MySQL": lambda user, password, db, host: f"mysql+pymysql://{user}:{password}@{host}/{db}",
-    "PostgreSQL": lambda user, password, db, host: f"postgresql://{user}:{password}@{host}/{db}",
-    "Microsoft_SQL_Server": lambda user, password, db, host: f"mssql+pyodbc://{user}:{password}@{host}/{db}?driver=ODBC+Driver+17+for+SQL+Server",
+    "MySQL": lambda user, password, db, host, port: f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}",
+    "PostgreSQL": lambda user, password, db, host, port: f"postgresql://{user}:{password}@{host}:{port}/{db}",
+    "SQLServer": lambda user, password, db, host, port: f"mssql+pyodbc://{user}:{password}@{host},{port}/{db}?driver=ODBC+Driver+17+for+SQL+Server",
 }
+
 
 transformadores = {
     'ln': np.log,
@@ -102,16 +103,17 @@ tipo_grafico_dic = {
 
 
 def importar_desde_db(data):
-    fuente = data.get("fuente")
-
-    usuario= data.get("usuario")
-    password = data.get("password")
+    SGBD = data.get("SGBD")
+    usuario= data.get("usuario_db")
+    password = data.get("password_db")
     base_de_datos =data.get("db")
     host = data.get("host")
+    puerto  =data.get("puerto")
     consulta = data.get("consulta")
-
+    print("---parametros de conexion:")
+    print(usuario,password,base_de_datos,host,consulta,puerto)
     try:
-        str_engine = sgbd[fuente](usuario, password, base_de_datos,host)
+        str_engine = sgbd[SGBD](usuario, password, base_de_datos,host,puerto)
         print(str_engine)
         engine = create_engine(str_engine)
         return read_sql(consulta,engine)
@@ -133,24 +135,34 @@ def guardar_datos_usuario(usuario, contraseña, base_datos,nombre_tabla, host="l
 
 
 def crear_db_clientes(nombre_tabla,df):
-    db_suffix = np.random.randint(1_000_000, 9_999_999) # Crear nombre aleatorio para la base de datos
-    db_name = f"db_clientes_{db_suffix}"
+    try:
+        print("Nombre de la tabla:", nombre_tabla)
+        db_suffix = np.random.randint(1_000_000, 9_999_999) # Crear nombre aleatorio para la base de datos
+        db_name =f"db_clientes_{db_suffix}"
+        print("bbdd: ",db_name)
+        url_engine =  VAR_CONEXION_SERVIDOR["URL"] 
+        print("url engine:", url_engine)
 
-    engine_root = create_engine(VAR_CONEXION_SERVIDOR["URL"])
-    
-    with engine_root.connect() as conn:
-        conn.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+        engine_root = create_engine(url_engine)
+        
+        with engine_root.connect() as conn:
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_name}"))
+        print("ingenieria para exportar")
+        engine = create_engine(f"{url_engine}{db_name}")
+        print("exportando a MySQl la tabla",nombre_tabla)
 
-    engine = create_engine(f"{VAR_CONEXION_SERVIDOR['URL']}/{db_name}")
-    df.to_sql(name=nombre_tabla, con=engine, if_exists='replace', index=False)
+        df.to_sql(name=nombre_tabla, con=engine, if_exists='replace', index=False)
 
-    print(f"DataFrame guardado en la base de datos '{db_name}' en la tabla 'clientes'")
-    
+        print(f"DataFrame guardado en la base de datos '{db_name}' en la tabla 'clientes'")
+        print("Saliendo de funcion datos> crear_db_clientes()")
+        
+    except Exception as ex:
+        print(ex)
 
 def obtener_conexion_mysql():
     try:
         print("++ Obteniendo conexión con MySQL para almacenar datos en nuestro servidor")
-        url =VAR_CONEXION_SERVIDOR["URL"]
+        url = VAR_CONEXION_SERVIDOR["URL"]
         engine = create_engine(url)
         print("Variable de conexión con MySQL (servidor)")
         print(url)

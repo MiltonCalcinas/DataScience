@@ -121,8 +121,16 @@ def cargar_datos(request):
     
     
     try:
-        print("--- Obteniendo Fuente")    
-        fuente =  request.POST.get("fuente")
+
+
+        content_type = request.content_type
+
+        if content_type == "application/json":
+            data = json.loads(request.body)
+            fuente = data.get("fuente")
+        else:
+            data = request.POST
+            fuente = data.get("fuente")
         
         if fuente == "csv":
 
@@ -130,16 +138,16 @@ def cargar_datos(request):
             file =  request.FILES.get("file")
             sep = request.POST.get("sep")
             df = pd.read_csv(file,sep=sep)
-            nombre_tabla = os.path.splitext(os.path.basename(file))[0]
+            nombre_tabla = os.path.splitext(os.path.basename(file.name))[0]
             print("nombre tabla",nombre_tabla)
         elif fuente == "excel":
 
             print("--- Recibiendo: Archivo Excel (binario)")
             file = request.FILES.get("file")
-            sheet_name = request.POST.get("sheet_name")
-            df = pd.read_excel(file,sheet_name=sheet_name)
-            nombre_tabla = os.path.splitext(os.path.basename(file))[0]
-            print("nombre tabla",nombre_tabla)
+            
+            df = pd.read_excel(file)
+            nombre_tabla = os.path.splitext(os.path.basename(file.name))[0]
+            print("---nombre tabla:",nombre_tabla)
 
         elif fuente == "SGBD":
 
@@ -158,25 +166,28 @@ def cargar_datos(request):
                                         password, 
                                         base_datos,
                                         nombre_tabla)
+            
         else:
             print("--- ❌ La fuente de datos No es la correcta")
-            raise Exception("La Fuente de BBDD seleccionada no es Válida. ")
+            raise Exception("La Fuente de BBDD seleccionada no es Valida. ")
 
-        print("---✅ Datos")
+        print("---✅ Ver Info")
         df.info()
         
         print("--- BBDD Ha lleado al BackEnd", "\n--- Limpiando Columnas con carácteres Raros")
         df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
         
         print("--- Guardando BBDD en nuestro Servidor")
-        datos.crear_db_clientes(nombre_tabla)
+        datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df)
 
-        conexion = datos.obtener_conexion_mysql()
-        datos.crear_tabla( df,conexion) # crea la tabla e inserta los datos
-        conexion.dispose()
+        # conexion = datos.obtener_conexion_mysql()
+        # datos.crear_tabla( df,conexion) # crea la tabla e inserta los datos
+        # conexion.dispose()
         print("--- ✅ Guardado Correctamente")
-
-        return datos.retornarJSON_tabla(df,msg="cargados y guardados",nrow=10)
+        print("--- saliendo de vista cargar_datos()")
+        return JsonResponse({
+                    "mensaje": f" Datos correctamente guardados en bbdd."
+                    })
     
     except json.JSONDecodeError:
         return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
@@ -325,3 +336,40 @@ def get_columns_name(request):
 
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import AllowAny
+
+class SignupView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username = request.data.get("username")
+        password1 = request.data.get("password1")
+        password2 = request.data.get("password2")
+
+        if password1 != password2:
+            return Response({"error": "Passwords do not match"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, password=password1)
+        token, created = Token.objects.get_or_create(user=user)
+
+        return Response({"token": token.key}, status=status.HTTP_201_CREATED)
+
+
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+
+class SigninView(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        response = super(SigninView, self).post(request, *args, **kwargs)
+        token = Token.objects.get(key=response.data['token'])
+        return Response({'token': token.key})
