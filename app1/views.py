@@ -12,6 +12,8 @@ from .utils import datos  #
 from .forms import TaskForm
 import re
 import os
+from .models import BaseDeDatosUsuario
+
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
 def home(request):
@@ -128,10 +130,10 @@ def cargar_datos(request):
         if content_type == "application/json":
             data = json.loads(request.body)
             fuente = data.get("fuente")
+
         else:
             data = request.POST
             fuente = data.get("fuente")
-        
         if fuente == "csv":
 
             print("--- Recibiendo: Archivo CSV (binario)")
@@ -144,8 +146,8 @@ def cargar_datos(request):
 
             print("--- Recibiendo: Archivo Excel (binario)")
             file = request.FILES.get("file")
-            
-            df = pd.read_excel(file)
+            sheet_name= request.POST.get("sheet_name")
+            df = pd.read_excel(file,sheet_name=sheet_name)
             nombre_tabla = os.path.splitext(os.path.basename(file.name))[0]
             print("---nombre tabla:",nombre_tabla)
 
@@ -157,16 +159,24 @@ def cargar_datos(request):
 
             nombre_tabla = data.get("nombre_tabla")
             print("nombre tabla",nombre_tabla)
+            print("---✅ Ver Info")
+            df.info()
+            print("--- BBDD Ha lleado al BackEnd", "\n--- Limpiando Columnas con carácteres Raros")
+            df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
+            
+            print("--- Guardando BBDD en nuestro Servidor")
+            datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df)
 
-            usuario = data.get("usuario_db")
-            password = data.get("password_db")
-            base_datos = data.get("base_datos")
+            print("--- ✅ Guardado Correctamente")
+
+            print("--- saliendo de vista cargar_datos()")
+
             
-            datos.guardar_datos_usuario(usuario, 
-                                        password, 
-                                        base_datos,
-                                        nombre_tabla)
-            
+            df_subset = df.head(50).to_dict(orient="records")
+            return JsonResponse(
+                data=df_subset,
+                safe=False
+            )
         else:
             print("--- ❌ La fuente de datos No es la correcta")
             raise Exception("La Fuente de BBDD seleccionada no es Valida. ")
@@ -180,9 +190,6 @@ def cargar_datos(request):
         print("--- Guardando BBDD en nuestro Servidor")
         datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df)
 
-        # conexion = datos.obtener_conexion_mysql()
-        # datos.crear_tabla( df,conexion) # crea la tabla e inserta los datos
-        # conexion.dispose()
         print("--- ✅ Guardado Correctamente")
         print("--- saliendo de vista cargar_datos()")
         return JsonResponse({
@@ -208,13 +215,18 @@ def filtrar(request):
         data = json.loads(request.body)
         print(data)
         filtro = data.get("filtro")
-        persistente = data.get("persistente") # boolean
         df = datos.select_df()
-        df_filtrado = df.query(filtro)
-        if persistente == True: 
-            conexion = datos.obtener_conexion_mysql()
-            datos.actualizar_dataframe(df,conexion)
-            conexion.dispose()
+        try:
+            df_filtrado = df.query(filtro)
+        except pd.errors.QuerySyntaxError as e:
+            return JsonResponse({"error": "Error en la sintaxis del filtro"}, status=400)
+        except KeyError as e:
+            return JsonResponse({"error": f"Columna no encontrada: {str(e)}"}, status=400)
+        
+
+        conexion = datos.obtener_conexion_mysql()
+        datos.actualizar_dataframe(df,conexion)
+        conexion.dispose()
         return datos.retornarJSON_tabla(df_filtrado,msg="filtrados")
     except json.JSONDecodeError:
         return JsonResponse({"error": "Error al procesar los datos JSON"}, status=400)
@@ -224,7 +236,7 @@ def filtrar(request):
 @csrf_exempt
 def elegir_columnas(request):
     if request.method != "POST":
-        return JsonResponse({"error","Método no permitido"},status=400)
+        return JsonResponse({"error":"Método no permitido"},status=400)
     
     # recibe un json con {"columnas": [col1,col2,etc]}
     try:

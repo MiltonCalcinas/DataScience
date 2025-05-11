@@ -16,3 +16,11 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title 
+    
+from django.contrib.auth.models import User
+
+class BaseDeDatosUsuario(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    db_name = models.CharField(max_length=100)
+    table_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)

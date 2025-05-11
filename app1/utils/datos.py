@@ -125,14 +125,6 @@ def importar_desde_db(data):
             engine.dispose()
 
 
-def guardar_datos_usuario(usuario, contraseña, base_datos,nombre_tabla, host="localhost", puerto=3306):        
-    VAR_CONEXION_CLIENTE["USER"] = usuario
-    VAR_CONEXION_CLIENTE["PASSWORD"] = contraseña
-    VAR_CONEXION_CLIENTE["HOST"] = host
-    VAR_CONEXION_CLIENTE["PUERTO"] = puerto
-    VAR_CONEXION_CLIENTE["BASEDATOS"] = base_datos
-    VAR_CONEXION_CLIENTE["NOMBRE_TABLA"] = nombre_tabla
-
 
 def crear_db_clientes(nombre_tabla,df):
     try:
@@ -208,11 +200,12 @@ def actualizar_dataframe(df, engine, modo="replace"):
 
 def select_df():
     try:
-        nombre_tabla =  VAR_CONEXION_CLIENTE["NOMBRE_TABLA"]
-        url = VAR_CONEXION_CLIENTE["URL"]
+        nombre_tabla =  ""
+        url = ""
         engine = create_engine(url)
         df = read_sql(f"SELECT * FROM {nombre_tabla}",engine)
         return df
+    
     except Exception as ex:
                 print({"error": f"Error al consultar la tabla del usuario a la base de datos: {str(ex)}"})
     finally:
