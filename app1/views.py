@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.shortcuts import render,redirect
-import numpy as np
+
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
@@ -12,7 +12,6 @@ from .utils import datos  #
 from .forms import TaskForm
 import re
 import os
-from .models import BaseDeDatosUsuario
 
 #   si no quiero retornar nada   return HttpResponse(status=204)  # 204 No Content
 
@@ -113,6 +112,66 @@ def signup(request):
 def main(request):
     return render(request,'main.html')
 
+
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import UserTable
+from .serializers import UserTableSerializer
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_table_name(request):
+    table_name = request.data.get('table_name')
+    if not table_name:
+        return Response({"table_name": "Este campo es requerido."}, status=400)
+    
+    # Buscar si el usuario ya tiene alguna base de datos asignada
+    user_tables = UserTable.objects.filter(user=request.user)
+    if user_tables.exists():
+        # Si hay registros, reutilizar el db_name del primer registro (o el que quieras)
+        db_name = user_tables.first().db_name
+    else:
+        # Si no hay registros, crear un nombre nuevo para la base de datos
+        db_name = f"db_for_{request.user.username}"
+        # Aquí podrías crear la base de datos físicamente si quieres
+    
+    data = {
+        "table_name": table_name,
+        "db_name": db_name,
+    }
+    
+    serializer = UserTableSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_last_table(request):
+    ultima_tabla = UserTable.objects.filter(user=request.user).order_by('-created_at').first()
+    if ultima_tabla:
+        serializer = UserTableSerializer(ultima_tabla)
+        return Response(serializer.data)
+    return Response({"detail": "No hay tablas registradas."}, status=404)
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import UserTable
+from .serializers import UserTableSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def table_name_list(request):
+    tablas = UserTable.objects.filter(user=request.user).order_by('-created_at')
+    
+    serializer = UserTableSerializer(tablas, many=True)
+    return Response(serializer.data, status=200)
+
 @csrf_exempt
 def cargar_datos(request):
 
@@ -165,7 +224,7 @@ def cargar_datos(request):
             df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
             
             print("--- Guardando BBDD en nuestro Servidor")
-            datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df)
+            # datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df,user=request.user)
 
             print("--- ✅ Guardado Correctamente")
 
@@ -188,7 +247,7 @@ def cargar_datos(request):
         df.columns = [re.sub(r"[ .,;:]","",col) for col in df.columns ]        
         
         print("--- Guardando BBDD en nuestro Servidor")
-        datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df)
+        # datos.crear_db_clientes(nombre_tabla=nombre_tabla,df = df,user=request.user)
 
         print("--- ✅ Guardado Correctamente")
         print("--- saliendo de vista cargar_datos()")
@@ -385,3 +444,21 @@ class SigninView(ObtainAuthToken):
         response = super(SigninView, self).post(request, *args, **kwargs)
         token = Token.objects.get(key=response.data['token'])
         return Response({'token': token.key})
+    
+
+from rest_framework.authtoken.models import Token
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+
+class VerifyTokenView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        print("Verificando auth_token")
+        print("Username:", request.user.username)
+        print("ID:", request.user.id)
+        return Response({"message": "Token válido."})

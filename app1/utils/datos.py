@@ -27,7 +27,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import  confusion_matrix, classification_report,roc_curve, auc, r2_score,mean_squared_error
 from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
 
-
+from app1.models import UserTable
 import mysql.connector
 import re
 
@@ -126,30 +126,9 @@ def importar_desde_db(data):
 
 
 
-def crear_db_clientes(nombre_tabla,df):
-    try:
-        print("Nombre de la tabla:", nombre_tabla)
-        db_suffix = np.random.randint(1_000_000, 9_999_999) # Crear nombre aleatorio para la base de datos
-        db_name =f"db_clientes_{db_suffix}"
-        print("bbdd: ",db_name)
-        url_engine =  VAR_CONEXION_SERVIDOR["URL"] 
-        print("url engine:", url_engine)
+def crear_db_clientes(nombre_tabla, df, user):
+    pass
 
-        engine_root = create_engine(url_engine)
-        
-        with engine_root.connect() as conn:
-            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS {db_name}"))
-        print("ingenieria para exportar")
-        engine = create_engine(f"{url_engine}{db_name}")
-        print("exportando a MySQl la tabla",nombre_tabla)
-
-        df.to_sql(name=nombre_tabla, con=engine, if_exists='replace', index=False)
-
-        print(f"DataFrame guardado en la base de datos '{db_name}' en la tabla 'clientes'")
-        print("Saliendo de funcion datos> crear_db_clientes()")
-        
-    except Exception as ex:
-        print(ex)
 
 def obtener_conexion_mysql():
     try:
@@ -222,8 +201,8 @@ def retornarJSON_tabla(df,msg,nrow=10):
 
 
 def transformar_cols(data):
-    columnas = data.get(columnas)
-    op = data.get(op)
+    columnas = data.get("columnas")
+    op = data.get("op")
     df = select_df()
     func = transformadores[op]
     array = func(df[columnas])

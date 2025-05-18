@@ -2,7 +2,7 @@ from . import views
 from django.urls import path
 from django.shortcuts import render
 from .views import SignupView, SigninView
-
+from .views import VerifyTokenView
 urlpatterns= [
     path('',views.home,name='home'),
     path('signup/',views.signup,name='signup'),
@@ -20,4 +20,8 @@ urlpatterns= [
     path('nombre_columnas/',views.get_columns_name,name='nombre_columnas'),
     path('api/signup/', SignupView.as_view(), name='api_signup'),
     path('api/signin/', SigninView.as_view(), name='api_signin'),
+    path('api/verify_token/', VerifyTokenView.as_view()),
+    path("api/save_tabla_name/", views.save_table_name, name="guardar_tabla"),
+    path("api/last_table/", views.get_last_table, name="ultima_tabla"),
+    path('api/table_name/', views.table_name_list, name='nombre_tablas_usuario'),
 ]
