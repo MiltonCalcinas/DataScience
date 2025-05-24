@@ -47,30 +47,10 @@ VAR_CONEXION_SERVIDOR = {
 
 
 
-sgbd = {
-    "MySQL": lambda user, password, db, host, port: f"mysql+pymysql://{user}:{password}@{host}:{port}/{db}",
-    "PostgreSQL": lambda user, password, db, host, port: f"postgresql://{user}:{password}@{host}:{port}/{db}",
-    "SQLServer": lambda user, password, db, host, port: f"mssql+pyodbc://{user}:{password}@{host},{port}/{db}?driver=ODBC+Driver+17+for+SQL+Server",
-}
 
 
-transformadores = {
-    'ln': np.log,
-    'log10':np.log10,
-    'sqrt':np.sqrt,
-    'exp': np.exp,
-    'square':np.square,
-    'abs':np.abs,
-}
 
-estadisticos = {
-    "media": np.mean,
-    "mediana": np.median,
-    "desviacion_estandar": np.std,
-    "varianza": np.var,
-    "minimo": np.min,
-    "maximo": np.max
-}
+
 
 
 modelos_dic = {
@@ -90,40 +70,13 @@ modelos_dic = {
     "naive_bayes": GaussianNB(),
 }
 
-tipo_grafico_dic = {
-    'scatter': px.scatter,
-    'line': px.line,
-    'area': px.area,
-    'box': px.box,
-    'bar':px.bar,
-    'pie':px.pie,
-}
+
 
 
 
 
 def importar_desde_db(data):
-    SGBD = data.get("SGBD")
-    usuario= data.get("usuario_db")
-    password = data.get("password_db")
-    base_de_datos =data.get("db")
-    host = data.get("host")
-    puerto  =data.get("puerto")
-    consulta = data.get("consulta")
-    print("---parametros de conexion:")
-    print(usuario,password,base_de_datos,host,consulta,puerto)
-    try:
-        str_engine = sgbd[SGBD](usuario, password, base_de_datos,host,puerto)
-        print(str_engine)
-        engine = create_engine(str_engine)
-        return read_sql(consulta,engine)
-    except Exception as e:
-        print({"error": f"Error de conexión a la base de datos: {str(e)}"})
-        return DataFrame()
-    finally:
-        if engine is not None:
-            engine.dispose()
-
+    pass
 
 
 def crear_db_clientes(nombre_tabla, df, user):
