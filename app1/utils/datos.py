@@ -130,222 +130,222 @@ def actualizar_dataframe(df, engine, modo="replace"):
         raise ValueError(f"Error al insertar datos: {str(ex)}")
 
 
-def select_df():
-    try:
-        nombre_tabla =  ""
-        url = ""
-        engine = create_engine(url)
-        df = read_sql(f"SELECT * FROM {nombre_tabla}",engine)
-        return df
+# def select_df():
+#     try:
+#         nombre_tabla =  ""
+#         url = ""
+#         engine = create_engine(url)
+#         df = read_sql(f"SELECT * FROM {nombre_tabla}",engine)
+#         return df
     
-    except Exception as ex:
-                print({"error": f"Error al consultar la tabla del usuario a la base de datos: {str(ex)}"})
-    finally:
-        if engine is not None:
-            engine.dispose()
+#     except Exception as ex:
+#                 print({"error": f"Error al consultar la tabla del usuario a la base de datos: {str(ex)}"})
+#     finally:
+#         if engine is not None:
+#             engine.dispose()
 
 
-def retornarJSON_tabla(df,msg,nrow=10):
-    return JsonResponse({
-                "mensaje": f" Datos {msg} correctamente.",
-                "columnas":list(df.columns),
-                "filas":df.head(nrow).to_dict(orient="records"),
-                })
+# def retornarJSON_tabla(df,msg,nrow=10):
+#     return JsonResponse({
+#                 "mensaje": f" Datos {msg} correctamente.",
+#                 "columnas":list(df.columns),
+#                 "filas":df.head(nrow).to_dict(orient="records"),
+#                 })
 
 
-def transformar_cols(data):
-    columnas = data.get("columnas")
-    op = data.get("op")
-    df = select_df()
-    func = transformadores[op]
-    array = func(df[columnas])
-    new_cols = [f"{op}_{col}" for col in columnas]
-    new_cols = new_cols[0] if len(new_cols)==1 else new_cols
-    df[new_cols] = array
-    conexion = obtener_conexion_mysql()
-    crear_tabla(df,conexion)
-    conexion.dispose()
-    return df
+# def transformar_cols(data):
+#     columnas = data.get("columnas")
+#     op = data.get("op")
+#     df = select_df()
+#     func = transformadores[op]
+#     array = func(df[columnas])
+#     new_cols = [f"{op}_{col}" for col in columnas]
+#     new_cols = new_cols[0] if len(new_cols)==1 else new_cols
+#     df[new_cols] = array
+#     conexion = obtener_conexion_mysql()
+#     crear_tabla(df,conexion)
+#     conexion.dispose()
+#     return df
 
-def aplicar_ans(data):
-    df = select_df()
-    columnas = data.get(columnas)
-    op = data.get(op)
-    
-
-    if op == "PCA":
-        scaler= StandardScaler()
-        scaledX = scaler.fit_transform(df[columnas])
-        n_componentes = data.get(n_componentes)
-        pca= PCA(n_components=n_componentes,random_state=42)
-        X_pca = pca.fit_transform(scaledX)
-        df = pd.DataFrame(X_pca,columns=[ f"comp{i+1}" for i in range(X_pca.shape[1])])
-
-    elif op == "Kmeans":
-        n_clusters = data.get(n_clusters)
-        kmeans = KMeans(n_clusters=n_clusters,random_state=42)
-        kmeans_labels = kmeans.fit_predict(scaledX).reshape(-1,1)
-        df["cluster"] = kmeans_labels
-        
-    elif op == "linkage":
-        linked = linkage(scaledX, method='ward')
-        clusters =  pd.DataFrame(linked,columns=[f"clt{i+1}" for i in range(linked.shape[1])])
-        df[clusters.columns] = clusters.values
-    
-    conexion = obtener_conexion_mysql()
-    crear_tabla(df,conexion)
-    conexion.dispose()
-    return df
-
-
-def obtener_dict_estadisticos(data):
-    """             son funcioens resumenes             """
-    print("LLego al back-end")
-    try:
-        
-        columnas = data.get("variables")
-        func =estadisticos[ data.get("tipo")]
-        df = select_df()
-        array_resumen = func(df[columnas])
-        return array_resumen.round(4).to_dict(),200
-    except json.JSONDecodeError as e:
-        return {"error": f"Error en los datos: {str(e)}"},400
+# def aplicar_ans(data):
+#     df = select_df()
+#     columnas = data.get(columnas)
+#     op = data.get(op)
     
 
+#     if op == "PCA":
+#         scaler= StandardScaler()
+#         scaledX = scaler.fit_transform(df[columnas])
+#         n_componentes = data.get(n_componentes)
+#         pca= PCA(n_components=n_componentes,random_state=42)
+#         X_pca = pca.fit_transform(scaledX)
+#         df = pd.DataFrame(X_pca,columns=[ f"comp{i+1}" for i in range(X_pca.shape[1])])
 
-"""   recibe un json con modelos: [lista de modelos], tipo: regr o cls  , var_dep: y , test_size, """
-def realizar_entrenamiento(data):
-    try:
-        modelo_elegido = data.get("modelo")  # Nombre de los modelos
-        tipo_modelo = data.get("tipo")
-        busqueda = data.get("busqueda") # Boolean
-        df = select_df()
+#     elif op == "Kmeans":
+#         n_clusters = data.get(n_clusters)
+#         kmeans = KMeans(n_clusters=n_clusters,random_state=42)
+#         kmeans_labels = kmeans.fit_predict(scaledX).reshape(-1,1)
+#         df["cluster"] = kmeans_labels
+        
+#     elif op == "linkage":
+#         linked = linkage(scaledX, method='ward')
+#         clusters =  pd.DataFrame(linked,columns=[f"clt{i+1}" for i in range(linked.shape[1])])
+#         df[clusters.columns] = clusters.values
+    
+#     conexion = obtener_conexion_mysql()
+#     crear_tabla(df,conexion)
+#     conexion.dispose()
+#     return df
 
-        print(df.head())
-        X = df.iloc[:,1:]
-        y = df.iloc[:,0] 
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-        # PREGUNTA SI EXISTE BUSQUEDA    
-        if  busqueda == True :
-            result_search,codigo =  realizar_busqueda(X_train,y_train,X_test,y_test,data)
-            return result_search,codigo
+# def obtener_dict_estadisticos(data):
+#     """             son funcioens resumenes             """
+#     print("LLego al back-end")
+#     try:
         
-        # metricas sin ajustar hiperparametros        
-        if modelo_elegido in modelos_dic:          
-            modelo = modelos_dic[modelo_elegido]
-            modelo.fit(X_train, y_train)
-            result_metrica,codigo = calcular_metricas(modelo,X_test,y_test,tipo_modelo)
-            return result_metrica,codigo
-        
-        return {"error": "La opción elegida no es válida"},400
-        
-    except json.JSONDecodeError as ex:
-        return {"error": f"Error en los datos: {str(ex)}"},400
-        
-    except Exception as e:
-        return {"error": f"Error inesperado: {str(e)}"},500
+#         columnas = data.get("variables")
+#         func =estadisticos[ data.get("tipo")]
+#         df = select_df()
+#         array_resumen = func(df[columnas])
+#         return array_resumen.round(4).to_dict(),200
+#     except json.JSONDecodeError as e:
+#         return {"error": f"Error en los datos: {str(e)}"},400
     
 
-def calcular_metricas(modelo,X_test,y_test,tipo_modelo):
-    y_pred = modelo.predict(X_test)
-    print("calculadon metrica.............................................")
 
-    if tipo_modelo == "regresion":
-        mse = round(mean_squared_error(y_test, y_pred),4)
-        rmse = round(np.sqrt(mse),4)
-        r2 = round(r2_score(y_test, y_pred),4)
-        return {"mse":mse,"rmse":rmse,"R^2": r2},200
-    elif tipo_modelo == "clasificacion":
-        y_scores = modelo.predict_proba(X_test)[:,1]
-        report = classification_report(y_true= y_test,y_pred=y_pred)
-        print(report)
-        matriz_confusion = confusion_matrix(y_true=y_test,y_pred=y_pred).tolist()
-        print(matriz_confusion)
-        fpr,tpr,_ = roc_curve(y_test,y_scores)
-        auc_score = round(auc(fpr,tpr),4)
-        return {"report":report,"matriz_confusion":matriz_confusion,"auc_score": auc_score},200
-    else:
-        return {"error":"No se ha encontrado el modelo elegido"},400
+# """   recibe un json con modelos: [lista de modelos], tipo: regr o cls  , var_dep: y , test_size, """
+# def realizar_entrenamiento(data):
+#     try:
+#         modelo_elegido = data.get("modelo")  # Nombre de los modelos
+#         tipo_modelo = data.get("tipo")
+#         busqueda = data.get("busqueda") # Boolean
+#         df = select_df()
 
-def realizar_busqueda(X_train,y_train,X_test,y_test,data):
+#         print(df.head())
+#         X = df.iloc[:,1:]
+#         y = df.iloc[:,0] 
 
-    modelo_elegido = data.get("modelo")  # Nombre de los modelos
-    hiperparametros = data.get("params")
-    scoring = data.get("scoring")
-    tipo_busqueda = data.get("tipo_busqueda")
-    cv = data.get("cv")
+#         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-    if tipo_busqueda == "GridSearchCV" and modelo_elegido in modelos_dic :
-        modelo = modelos_dic[modelo_elegido]
-        search = GridSearchCV(
-            modelo,
-            hiperparametros,
-            cv=cv,
-            scoring=scoring,
-            n_jobs=-1
-        )
-        search.fit(X_train,y_train)
-        result_search = {"best_estamador": search.best_estimator_, 
-                        "best_params": search.best_params_,
-                        "best_score": search.best_score_}
-        best_estimator = search.best_estimator_
-        y_pred = best_estimator.predict(X_test)
-        mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
-        metricas = {"mse": mse, "rmse":rmse}
-        return {"search":result_search,"metricas":metricas},200
-    elif tipo_busqueda =="RandomizedSearchCV" and modelo_elegido in modelos_dic:
-        n_iter = data.get("n_iter")
-        modelo = modelos_dic[modelo_elegido]
-        search = RandomizedSearchCV(
-            modelo,
-            hiperparametros,
-            cv=cv,
-            scoring=scoring,
-            n_iter=n_iter,
-            n_jobs=-1
-        )
-        search.fit(X_train,y_train)
-        result_search ={"best_estamador": search.best_estimator_, 
-                                        "best_params": search.best_params_,
-                                        "best_score": search.best_score_}
-        best_estimator = search.best_estimator_
-        y_pred = best_estimator.predict(X_test)
-        mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
-        metricas = {"mse": mse, "rmse":rmse}
-        return {"search":result_search,"metricas":metricas},200
-    else:
-        return {"error": "La opción elegida no es válida"},400
+#         # PREGUNTA SI EXISTE BUSQUEDA    
+#         if  busqueda == True :
+#             result_search,codigo =  realizar_busqueda(X_train,y_train,X_test,y_test,data)
+#             return result_search,codigo
+        
+#         # metricas sin ajustar hiperparametros        
+#         if modelo_elegido in modelos_dic:          
+#             modelo = modelos_dic[modelo_elegido]
+#             modelo.fit(X_train, y_train)
+#             result_metrica,codigo = calcular_metricas(modelo,X_test,y_test,tipo_modelo)
+#             return result_metrica,codigo
+        
+#         return {"error": "La opción elegida no es válida"},400
+        
+#     except json.JSONDecodeError as ex:
+#         return {"error": f"Error en los datos: {str(ex)}"},400
+        
+#     except Exception as e:
+#         return {"error": f"Error inesperado: {str(e)}"},500
+    
+
+# def calcular_metricas(modelo,X_test,y_test,tipo_modelo):
+#     y_pred = modelo.predict(X_test)
+#     print("calculadon metrica.............................................")
+
+#     if tipo_modelo == "regresion":
+#         mse = round(mean_squared_error(y_test, y_pred),4)
+#         rmse = round(np.sqrt(mse),4)
+#         r2 = round(r2_score(y_test, y_pred),4)
+#         return {"mse":mse,"rmse":rmse,"R^2": r2},200
+#     elif tipo_modelo == "clasificacion":
+#         y_scores = modelo.predict_proba(X_test)[:,1]
+#         report = classification_report(y_true= y_test,y_pred=y_pred)
+#         print(report)
+#         matriz_confusion = confusion_matrix(y_true=y_test,y_pred=y_pred).tolist()
+#         print(matriz_confusion)
+#         fpr,tpr,_ = roc_curve(y_test,y_scores)
+#         auc_score = round(auc(fpr,tpr),4)
+#         return {"report":report,"matriz_confusion":matriz_confusion,"auc_score": auc_score},200
+#     else:
+#         return {"error":"No se ha encontrado el modelo elegido"},400
+
+# def realizar_busqueda(X_train,y_train,X_test,y_test,data):
+
+#     modelo_elegido = data.get("modelo")  # Nombre de los modelos
+#     hiperparametros = data.get("params")
+#     scoring = data.get("scoring")
+#     tipo_busqueda = data.get("tipo_busqueda")
+#     cv = data.get("cv")
+
+#     if tipo_busqueda == "GridSearchCV" and modelo_elegido in modelos_dic :
+#         modelo = modelos_dic[modelo_elegido]
+#         search = GridSearchCV(
+#             modelo,
+#             hiperparametros,
+#             cv=cv,
+#             scoring=scoring,
+#             n_jobs=-1
+#         )
+#         search.fit(X_train,y_train)
+#         result_search = {"best_estamador": search.best_estimator_, 
+#                         "best_params": search.best_params_,
+#                         "best_score": search.best_score_}
+#         best_estimator = search.best_estimator_
+#         y_pred = best_estimator.predict(X_test)
+#         mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
+#         metricas = {"mse": mse, "rmse":rmse}
+#         return {"search":result_search,"metricas":metricas},200
+#     elif tipo_busqueda =="RandomizedSearchCV" and modelo_elegido in modelos_dic:
+#         n_iter = data.get("n_iter")
+#         modelo = modelos_dic[modelo_elegido]
+#         search = RandomizedSearchCV(
+#             modelo,
+#             hiperparametros,
+#             cv=cv,
+#             scoring=scoring,
+#             n_iter=n_iter,
+#             n_jobs=-1
+#         )
+#         search.fit(X_train,y_train)
+#         result_search ={"best_estamador": search.best_estimator_, 
+#                                         "best_params": search.best_params_,
+#                                         "best_score": search.best_score_}
+#         best_estimator = search.best_estimator_
+#         y_pred = best_estimator.predict(X_test)
+#         mse,rmse = mean_squared_error(y_test,y_pred), np.sqrt(mse)
+#         metricas = {"mse": mse, "rmse":rmse}
+#         return {"search":result_search,"metricas":metricas},200
+#     else:
+#         return {"error": "La opción elegida no es válida"},400
 
 
 
 
 
 
-# Función para calcular los valores del box plot
-def calcular_boxplot(grupo):
-    q1,median,q3 = [ np.round(np.percentile(grupo, per),4) for per in range(25,76,25) ]  # cuartiles
-    min_val,max_val = np.round(grupo.min(),4), np.round(grupo.max(),4)  #min y  Máximo
-    iqr = q3 - q1  # Rango intercuartílico
-    lower_bound, upper_bound = q1 - 1.5 * iqr, q3 + 1.5 * iqr # limites
-    outliers = grupo[(grupo < lower_bound) | (grupo > upper_bound)].round(4).tolist()  # Detectar outliers
-    return {'min': float(min_val), 'q1': float(q1), 'median': float(median), 'q3': float(q3), 'max': float(max_val), 'outliers': outliers}
+# # Función para calcular los valores del box plot
+# def calcular_boxplot(grupo):
+#     q1,median,q3 = [ np.round(np.percentile(grupo, per),4) for per in range(25,76,25) ]  # cuartiles
+#     min_val,max_val = np.round(grupo.min(),4), np.round(grupo.max(),4)  #min y  Máximo
+#     iqr = q3 - q1  # Rango intercuartílico
+#     lower_bound, upper_bound = q1 - 1.5 * iqr, q3 + 1.5 * iqr # limites
+#     outliers = grupo[(grupo < lower_bound) | (grupo > upper_bound)].round(4).tolist()  # Detectar outliers
+#     return {'min': float(min_val), 'q1': float(q1), 'median': float(median), 'q3': float(q3), 'max': float(max_val), 'outliers': outliers}
 
-# Aplicar la función a cada categoría
+# # Aplicar la función a cada categoría
 
-def calcular_datos_box2(df,var_x,var_y):   
-    dict_por_categoria = df.groupby(var_x)[var_y].apply(calcular_boxplot).to_dict()
-    cat = {}
-    valores = {}
-    for key,values in dict_por_categoria.items():
-        valores[key[1]] = values
-        if key[1]== 'outliers':
-            cat[key[0]] = valores
-            valores = {}
-    # Mostrar resultado
-    print(cat)
-    return cat
+# def calcular_datos_box2(df,var_x,var_y):   
+#     dict_por_categoria = df.groupby(var_x)[var_y].apply(calcular_boxplot).to_dict()
+#     cat = {}
+#     valores = {}
+#     for key,values in dict_por_categoria.items():
+#         valores[key[1]] = values
+#         if key[1]== 'outliers':
+#             cat[key[0]] = valores
+#             valores = {}
+#     # Mostrar resultado
+#     print(cat)
+#     return cat
 
 
 
