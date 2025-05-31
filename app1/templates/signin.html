@@ -1,16 +1,22 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <title>Login</title>
 </head>
-<body>
-    {{ error }}
-    <form action="{% url 'signin' %}" method="post">
-        {% csrf_token %}
-        {{form}}.as_p
-        <button>Enviar</button>
-    </form>
+<body id="login-page">
+  <h2>Iniciar sesión</h2>
+  <form id="loginForm">
+    <label for="username">Usuario:</label>
+    <input type="text" id="username" name="username" required /><br/>
+
+    <label for="password">Contraseña:</label>
+    <input type="password" id="password" name="password" required /><br/>
+    <input type="submit">
+  </form>
+  
+<script src="{% static 'app1/js/script.js' %}"></script>
+
 </body>
 </html>

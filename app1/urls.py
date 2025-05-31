@@ -8,7 +8,7 @@ urlpatterns= [
     # path('signup/',views.signup,name='signup'),
     # path('main/',views.main,name='main'),
     # path('signout/',views.signout,name='signout'),
-    # path('signin/',views.signin,name='signin'),
+    path('signin/',views.signin,name='signin'),
     # path('create_task/',views.create_task,name='create_task'),
     # path('cargar_datos/',views.cargar_datos,name='cargar_datos'),
     # path('filtrar/',views.filtrar,name='filtrar'),
@@ -24,4 +24,8 @@ urlpatterns= [
     path("api/save_tabla_name/", views.save_table_name, name="guardar_tabla"),
     path("api/last_table/", views.get_last_table, name="ultima_tabla"),
     path('api/table_name/', views.table_name_list, name='nombre_tablas_usuario'),
-]
+    path('api/subir_excel/', views.subir_excel, name='subir_excel'),
+    path('api/subir_csv/',views.subir_csv,name='subir_csv'),
+    path('api/conectarser_sgbd_cliente/',views.conectarse_sgbd_cliente,name='conectarser_sgbd_cliente'),
+    path('api/cargar-tabla-usuario/', views.cargar_tabla_usuario, name='cargar_tabla_usuario'),
+  ]

@@ -4,6 +4,10 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="csrf-token" content="{{ csrf_token }}">
+	<script src="https://cdn.jsdelivr.net/npm/danfojs@1.1.2/lib/bundle.min.js"></script>
+	
+
 	<title>Data Science</title>
 	<!--<link rel="stylesheet"  href="{% static 'miapp/css/estilo.css' %}">  -->
 	<style>
@@ -79,7 +83,7 @@
 			position: relative;
 		}
 
-		input[type="text"] {
+		input[ type="text"] {
 			width: 100%;
 			padding: 10px 10px;
 			border: 1px solid #ccc;
@@ -128,24 +132,28 @@
 			background-color: #f9f9f9;
 		}
 
-		table {
-			width: 100%;
-			border-collapse: collapse;
-		}
+		.table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+}
 
-		table, th, td {
-			border: 1px solid #ccc;
-		}
+	table {
+		width: 100%;
+		border-collapse: collapse;
+	}
 
-		th, td {
-			padding: 12px;
-			text-align: left;
-		}
+	th, td {
+		padding: 8px;
+		border: 1px solid #ddd;
+	}
 
-		th {
-			background-color: #4CAF50;
-			color: white;
-		}
+	th {
+		background-color: #4CAF50;
+		position: sticky;
+		top: 0;
+		color: #ffffff;
+	}
 
 		/* Nueva caja de botones en 2 filas de 4 */
 		.new-box .button-grid {
@@ -269,7 +277,7 @@
 		}
 
 		/* Estilo de los elementos dentro de la caja */
-		.content-box input,
+		.content-box input,required 
 		.content-box select {
 			padding: 8px;
 			font-size: 14px;
@@ -278,70 +286,105 @@
 			width: 100%; /* Hace que los elementos ocupen todo el espacio disponible en cada celda */
 		}
 
-
-		/* oculta la ventana emergente  (Conexion a base de datos)*/
-		.popup,.popup2,.popup3 {
-            display: none; /* Oculta la ventana por defecto */
-            position: fixed;
-            z-index: 1;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro */
-            }
-
-            .popup-contenido {
-            background-color: white;
-            margin: 5% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 300px;
-            position: relative;
-            text-align: center;
-            }
+		
 
 
-            .cerrar {
-            position: absolute;
-            top: 10px; right: 15px;
-            color: #aaa;
-            font-size: 28px;
-            cursor: pointer;
-            }
-            .cerrar:hover {
-            color: black;
-            }
 
-
-            .formulario {
-            display: grid;
-            grid-template-rows: auto auto auto;
-            gap: 15px;
-            width: 300px;
-            margin: 0 auto; /* Centra el formulario */
-            }
-
-            .fila {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
+					/* Fondo oscuro y centrado para el popup */
+		.popup_sgbd,
+		.popup_csv,
+		.popup_excel,
+		.popup_filtrar,
+		.popup_columnas,
+		.popup_convertir,
+		.popup_generar_grafico,
+		.popup_estadisticas,
+		.popup_transformar_variables,
+		.popup_ANO {
+			display: none; /* Se muestra solo cuando se activa */
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			background-color: rgba(0,0,0,0.5); /* Fondo oscuro transparente */
+			z-index: 1000;
+			justify-content: center;
 			align-items: center;
-			height: 30px;
-            }
-			.fila input{
-				width: 130px;
-				padding: 10px;
-				border: #4CAF50 solid 1px;
-				border-radius: 8px;
-				
-			}
-            .fila.boton {
-            display: flex;
-            justify-content: center;
-            }
+
+			
+		}
+
+		/* Contenido del popup */
+		.popup-contenido {
+			background-color: white;
+			padding: 2rem;
+			border-radius: 10px;
+			width: 90%;
+			max-width: 500px;
+			box-shadow: 0 0 15px rgba(0,0,0,0.3);
+			position: relative;
+			border: solid 3px #4CAF50;
+			box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+		}
+
+		/* Botón cerrar */
+		.cerrar {
+			position: absolute;
+			top: 10px;
+			right: 15px;
+			font-size: 24px;
+			cursor: pointer;
+		}
+
+		/* Estilos para los formularios */
+		.formulario  {
+			margin-bottom: 1rem;
+			
+		}
+		.fila {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			text-align: right;
+			padding: 5px;
+		}
+		.fila input{ 
+			max-width: 300px;
+		}
+
+
+		.formulario label {
+			display: block;
+			margin-bottom: 0.3rem;
+			font-weight: bold;
+		}
+
+		.formulario input[ type="text"],
+		.formulario input[ type="password"],
+		.formulario input[ type="file"] {
+			width: 100%;
+			padding: 0.4rem;
+			box-sizing: border-box;
+		}
+
+		.fila_boton, .buton, .boton {
+			text-align: center;
+		}
+
+		.fila_boton input,required 
+		.buton input,required 
+		.boton input required {
+			padding: 0.6rem 1.2rem;
+			font-size: 1rem;
+			cursor: pointer;
+		}
+
+
 	</style>
 
 </head>
-<body>
+<body id="main-page">
 
 	<!-- Título de la página -->
 	<div class="page-title">
@@ -367,14 +410,10 @@
 					<option value="PostgreSQL">PostgreSQL</option>
 					<option value="Microsoft_SQL_Server">SQL Server</option>
 				</select>
-				<select id="elegir_columnas">
-					<option value="" hidden>Elegir Columnas/Files</option>
-					<option value="1">Columna 1</option>
-					<option value="2">Columna 2</option>
-					<option value="3">Columna 3</option>
-				
-				</select>
-				<select title="Aplica una función (p.e. log) a cada valor de las columnas seleccionadas">
+				<button id="btn_columnas">
+					Elegir Columnas
+				</button>
+				<select title="Aplica una función (p.e. log) a cada valor de las columnas seleccionadas" id="cbo_transformar_variable">
 					<option value="" hidden >Transformar Variables</option>
 					<option value="ln">ln</option>
 					<option value="log10">log10</option>
@@ -383,7 +422,10 @@
 					<option value="square">square</option> <!--  potencia al cuadrado-->
 					<option value="abs">abs</option>
 				</select>
-				<select title="Genera gráficos de 2 dimensiones">
+				<button id="btn_generar_grafico">
+					Generar Gráfico
+				</button>
+				<!-- <select title="Genera gráficos de 2 dimensiones">
 					<option value="" hidden>Generar Gráficos</option>
 					<option value="bar"		title="Selecciona variable categórica">Barra</option>
 					<option value="pie"		title="Selecciona variable categórica">Pie</option>
@@ -391,7 +433,7 @@
 					<option value="area"	title="Selecciona 2 Variables numéricas">Area</option>
 					<option value="box"		title="Selecciona 1 Variable numérica">Box Plot</option>
 					<option value="box_by_category"	title="Selecciona 1 variable numérica y otra categórica">Box by Category</option>
-				</select>
+				</select> -->
 				<select id="variable_dependiente">
 					<option value="" hidden>Variable Dependiente</option>
 					<option value="1">Opción 1</option>
@@ -402,13 +444,17 @@
 
 			<!-- Fila 2: Searchbox y 3 dropdownlists -->
 			<div class="row">
-				<!-- Contenedor del input -->
-				<div class="search-container">
-					<input type="text" id="search" placeholder="Filtros" oninput="buscar()">
-					<!-- Desplegable de resultados -->
-					<ul id="suggestions" class="suggestions"></ul>
-				</div>
-				<select>
+				<!-- Contenedor del input required -->
+
+				<button id="btn_filtrar">
+					Filtrar
+				</button>
+				
+
+				<button id="btn_convertir">
+					Convertir Tipo de Dato
+				</button>
+				<!-- <select>
 					<option value="" hidden>Convertir Tipo de Dato</option>
 					<option value="1">Texto a número (int)</option>
 					<option value="2">Texto a número (float)</option>
@@ -416,14 +462,18 @@
 					<option value="3">Texto a categoria</option>
 					<option value="3">Número a texto</option>
 					<optino value="3">Fecha a texto</optino>
-				</select>
-				<select>
+				</select> -->
+				<select id="cbo_ANO">
 					<option value="A">A. No supervisado</option>
 					<option value="PCA">PCA</option>
 					<option value="Kmeans">Clustering (K-means)</option>
 					<option value="linkage">Hierarchical Clustering</option>
 				</select>
-				<select>
+
+				<button id="btn_estadisticas">
+					Estadisticas
+				</button>
+				<!-- <select>
 					<option value="" hidden>Calcular Estadisticas</option>
 					<option value="media">Media</option>
 					<option value="mediana">Meniana</option>
@@ -431,7 +481,7 @@
 					<option value="varianza">Varianza</option>
 					<option value="minimo">Mínimo</option>
 					<option value="maximo">Máximo</option>
-				</select>
+				</select> -->
 				
 				<!-- Espacio vacío debajo del 5to dropdownlist -->
 				<div class="empty-space"><button id="btn_aplicar">Aplicar</button></div>
@@ -484,6 +534,7 @@
 				<option value="GridSearchCV">Grid Search CV</option>
 				<option value="RandomizedSearchCV">Randomized Search CV</option>
 			</select>
+
 			<textarea placeholder="Ajuste de Hyperparámetros (diccionario)"></textarea>
 			<select>
 				<option value="" hidden>Baging/Pasting</option>
@@ -491,6 +542,16 @@
 				<option value="2">Opción 2</option>
 				<option value="3">Opción 3</option>
 			</select>
+						<select title="Scoring">
+					<option value="" hidden >Scoring</option>
+					<option value="ln">ln</option>
+					<option value="log10">log10</option>
+					<option value="sqrt">sqrt</option> <!--  raiz cuadrada-->
+					<option value="exp">exp</option>
+					<option value="square">square</option> <!--  potencia al cuadrado-->
+					<option value="abs">abs</option>
+			</select>
+			<button>Entrenar</button>
 		</div>
 	</div>
 
@@ -515,15 +576,43 @@
 
 			<fieldset>
 				<legend>Fuente</legend>
+				<div class="row">
+					<button>Nuevo</button>
+					<select name="elegir_texto" id="elegir_texto">
+						<option value="1">text box 1</option>
+						<option value="2">text box2</option>
+						<option value="3">text box3</option>						
+					</select>
+					<button>Eliminar</button>
+				</div>
 				<div class="font-buttons">
 					<button class="button bold">N</button>
 					<button class="button italic">C</button>
 					<button class="button underline">S</button>
+
+					<select name="family" id="family">
+						<option value="Arial">Arial</option>
+						<option value="Arial">Arial</option>
+						<option value="Arial">Arial</option>						
+					</select>
+					<select name="size" id="size">
+						<option value="1">1</option>
+						<option value="2">2</option>
+						<option value="3">3</option>						
+					</select>
 				</div>
 			</fieldset>
 
 			<fieldset>
 				<legend>Configurar Grafico</legend>
+				<div class="row">
+					<select name="elegir_grafico" id="elegir_grafico">
+						<option value="1">grafico 1</option>
+						<option value="2">grafico 2</option>
+						<option value="3">grafico 3</option>						
+					</select>
+					<button>Eliminar</button>
+				</div>
 				<div class="effect-buttons">
 					<button class="button">Relleno</button>
 					<button class="button">Contorno</button>
@@ -575,77 +664,187 @@
 
 	</div>
 <!--				VENTANA EMERGENTE PARA CONECTARSE A LA BASE DE DATOS DEL CLIENTE -->
-	<div id="popup" class="popup">
+	<div id="popup_sgbd" class="popup_sgbd">
         <div class="popup-contenido">
             <span class="cerrar">&times;</span>        
             <h2>Conectar Con Base de datos</h2> 
-            <form action="##" method="post" id="credenciales" class="formulario">
+            <form action="##" method="post" id="formulario_sgbd" class="formulario">
                 <div class="fila">
                   <label for="usuario">Usuario</label>
-                  <input type="text" name="usuario" id="usuario" placeholder="Ej: Milton Calcinas">
+                  <input required type="text" name="usuario" id="usuario" placeholder="Ej: Milton Calcinas">
                 </div>
               
                 <div class="fila">
                   <label for="pass">Password</label>
-                  <input type="password" name="pass" id="pass">
+                  <input required type="password" name="pass" id="pass">
                 </div>
               
                 <div class="fila">
                   <label for="host">Host</label>
-                  <input type="text" name="host" id="host" placeholder="Ej: localhost">
+                  <input required type="text" name="host" id="host" placeholder="Ej: localhost">
                 </div>
               
                 <div class="fila">
                   <label for="puerto">Puerto</label>
-                  <input type="text" name="puerto" id="puerto">
+                  <input required type="text" name="puerto" id="puerto">
                 </div>
               
                 <div class="fila">
                   <label for="bd">Base de datos</label>
-                  <input type="text" name="bd" id="bd">
+                  <input required type="text" name="bd" id="bd">
                 </div>
 				<div class="fila">
-						<label for="nombre_tabla">Tabla</label>
-						<input type="text" name="nombre_tabla" id="nombre_tabla">
-				</div>
-                <div class="fila boton">
-                  <input type="submit" value="Conectar" name="enviar" id="enviar_formulario_bbdd">
+                  <label for="consulta">Consulta</label>
+                  <input required type="text" name="consulta" id="consulta">
                 </div>
-              </form>
+				<div class="fila">
+						<label for="nombre_tabla">Nombrar Tabla</label>
+						<input required type="text" name="nombre_tabla" id="nombre_tabla">
+				</div>
+                <div class="fila_boton">
+                  <input required type="submit" value="Enviar" name="enviar" id="enviar_formulario_bbdd">
+                </div>
+            </form>
               
         </div>
     </div>
 <!--		SELECCIONAR EL ARCHIvo  CSV donde el cliente tiene sus datos  -->
-    <div id="popup2" class="popup2">
+    <div id="popup_csv" class="popup_csv">
         <div class="popup-contenido">
             <span class="cerrar" >&times;</span>
-            <div class="formulario" id="formulario_csv">
+            <form class="formulario" id="formulario_csv">
+				
 				<h2>Cargar Archivo CSV </h2>
-					<input type="file" id="file_csv" name="file">
+				
+				<div class="fila">
+					<label for="file_csv">Archivo CSV</label>
+					<input required type="file" id="file_csv" name="file_csv" accept=".csv">
+				</div>
+				
 				<div class="fila">
 					<label for="sep">Delimitador</label>
-					<input type="text" name="sep" id="sep" placeholder="Ej: , ; "	>
+					<input required type="text" name="sep" id="sep" placeholder="Ejemplo : ; "	>
 				</div>
-				<div class="fila boton">
-                 <input type="submit" name="enviar" id="enviar_formulario_csv" value="Cargar Archivo">
+				
+				<div class="fila">
+					<label for="encoding">encoding</label>
+					<input required type="text" name="encoding" id="encoding" placeholder="Ejemplo: UTF-8">
 				</div>
-            </div>
+				
+				<div class="fila">
+					<label for="nombre_tabla_csv">Nombre tabla</label>
+					<input required type="text" name="nombre_tabla_csv" id="nombre_tabla_csv" placeholder="Ejemplo: Tabla_Ventas">
+				</div>
+				
+				<div class="fila_boton">
+                 	<input required type="submit" name="enviar" id="enviar" value="Enviar">
+				</div>
+            
+			</form>
         </div>
     </div>
 	<!--		SELECCIONAR EL ARCHIOV EXCEL donde el cliente tiene sus datos  -->
 
-	<div id="popup3" class="popup3">
+	<div id="popup_excel" class="popup_excel">
         <div class="popup-contenido">
             <span class="cerrar" >&times;</span>
-            <form class="formulario">
-				<h2>Cargar Archivo CSV </h2>
-					<input type="file" id="file_excel" name="file">
-				<div class="fila boton">
-                 <input type="submit" name="enviar" id="enviar_enviar_formulario_excel" value="Cargar Archivo">
+            <form class="formulario" id="form_excel">
+				
+				<h2>Cargar Archivo Excel </h2>
+				
+				
+				<div class="fila">
+					<label for="file_excel">Archivo Excel</label>
+					<input required type="file" id="file_excel" name="file" accept=".xlsx .xls">
 				</div>
+
+				<div class="fila">
+					<label for="hoja">Hoja</label>
+					<input required type="text" name="hoja" id="hoja" placeholder="Sheet1">
+				</div>
+
+				<div class="fila">
+					<label for="nombre_tabla_excel">Nombre Tabla</label>
+					<input required type="text" name="nombre_tabla_excel" id="nombre_tabla_excel" placeholder="Ejemplo: Tabla_Ventas">
+				</div>
+
+				<div class="fila_boton">
+                 	<input required type="submit" name="enviar" id="enviar_enviar_formulario_excel" value="Enviar">
+				</div>
+
             </form>
         </div>
     </div>
+	
+	<div id="popup_filtrar" class="popup_filtrar">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			
+			<form id="form_filtrar"></form>
+			<button id="btn_filtrar_filas">Filtrar</button>
+		</div>
+	</div>
+
+	<div id="popup_columnas" class="popup_columnas">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			
+			<h2>Realiza Columnas</h2>
+			
+			<form id="form_columnas">
+
+			</form>
+  			<button id="btn_eliminar_columnas">Eliminar Columna</button>
+		
+		</div>
+	</div>
+
+	<div id="popup_generar_grafico" class="popup_generar_grafico">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			
+			<p>Aquí irá el contenido</p>
+
+		</div>
+	</div>
+
+	<div id="popup_convertir" class="popup_convertir">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			<h2>Convertir Tipo de Dato</h2>
+			<p>Aquí irá el contenido</p>
+
+		</div>
+	</div>
+
+	<div id="popup_estadisticas" class="popup_estadisticas">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			<h2>Calcular Estadística</h2>
+			<p>Aquí irá el contenido</p>
+
+		</div>
+	</div>
+
+	<div id="popup_transformar_variables" class="popup_transformar_variables">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			<h2>Transformar Variables</h2>
+			<p>Aquí irá el contenido</p>
+
+		</div>
+	</div>
+
+	<div id="popup_ANO" class="popup_ANO">
+		<div class="popup-contenido">
+			<span class="cerrar">&times;</span>
+			<h2>Transformar Variables</h2>
+			<p>Aquí irá el contenido</p>
+
+		</div>
+	</div>
+
+
 	<script>
 
 		function openTab(event, tabId) {
@@ -717,7 +916,7 @@
 			const suggestions = document.getElementById('suggestions');
 			suggestions.innerHTML = ''; // Limpiar resultados anteriores
 
-			// Si hay algo escrito en el input, buscar coincidencias
+			// Si hay algo escrito en el input,required  buscar coincidencias
 			if (query.length > 0) {
 				const filteredItems = items.filter(item => item.toLowerCase().includes(query.toLowerCase()));
 
