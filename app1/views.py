@@ -332,3 +332,82 @@ def cargar_tabla_usuario(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
+
+
+
+
+from .models import UserTable, ContenidoRelacionado
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def guardar_contenido_multiple(request):
+    print("--Guardadno contenido")
+    user = request.user
+    table_name = request.data.get("table_name")
+    contenidos = request.data.get("contenidos")  # Este es un diccionario
+
+    if not table_name or not contenidos:
+        return Response({"error": "Faltan campos requeridos"}, status=400)
+
+    try:
+        user_table = UserTable.objects.get(user=user, table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"error": "Tabla no encontrada"}, status=404)
+
+    mensajes = []
+
+    for tipo, contenido_lista in contenidos.items():
+        if not isinstance(contenido_lista, list):
+            continue  # ignorar si no es lista
+
+        obj, creado = ContenidoRelacionado.objects.update_or_create(
+            table=user_table,
+            tipo=tipo,
+            defaults={"contenido": json.dumps(contenido_lista)}  # Guardamos como string
+        )
+
+        if creado:
+            mensajes.append(f"✔ {tipo.capitalize()} creado.")
+        else:
+            mensajes.append(f"✏ {tipo.capitalize()} actualizado.")
+    print("--✅ contenido guardado con éxito")
+    return Response({"success": "Contenidos procesados.", "detalles": mensajes}, status=200)
+
+
+
+
+from collections import defaultdict
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def obtener_contenido(request):
+    print("--Obteniendo contendido")
+    table_name = request.query_params.get("table_name")
+
+    if not table_name:
+        return Response({"error": "Falta el nombre de la tabla"}, status=400)
+
+    try:
+        user_table = UserTable.objects.get(user=request.user, table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"error": "Tabla no encontrada"}, status=404)
+
+    queryset = ContenidoRelacionado.objects.filter(table=user_table).order_by("-fecha_creacion")
+
+    # Agrupar por tipo: nota, estadistica, modelo
+    agrupado = defaultdict(list)
+
+    for item in queryset:
+        try:
+            contenido = json.loads(item.contenido)  # Convertir de string a lista
+        except json.JSONDecodeError:
+            contenido = []
+
+        agrupado[item.tipo].extend(contenido)
+    print("-- ✅ Contendio obtendio con exito")
+    return Response({
+        "notas": agrupado.get("nota", []),
+        "estadisticas": agrupado.get("estadistica", []),
+        "modelos": agrupado.get("modelo", [])
+    }, status=200)

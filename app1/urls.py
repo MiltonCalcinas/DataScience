@@ -28,4 +28,6 @@ urlpatterns= [
     path('api/subir_csv/',views.subir_csv,name='subir_csv'),
     path('api/conectarser_sgbd_cliente/',views.conectarse_sgbd_cliente,name='conectarser_sgbd_cliente'),
     path('api/cargar-tabla-usuario/', views.cargar_tabla_usuario, name='cargar_tabla_usuario'),
+    path("api/guardar-contenido/", views.guardar_contenido_multiple, name="guardar_contenido"),
+    path("api/obtener-contenido/", views.obtener_contenido, name="obtener_contenido"),
   ]
