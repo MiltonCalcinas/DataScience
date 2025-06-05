@@ -3,6 +3,7 @@ from django.urls import path
 from django.shortcuts import render
 from .views import SignupView, SigninView
 from .views import VerifyTokenView
+from .views import ListaGraficos
 urlpatterns= [
     path('',views.home,name='home'),
     # path('signup/',views.signup,name='signup'),
@@ -30,4 +31,5 @@ urlpatterns= [
     path('api/cargar-tabla-usuario/', views.cargar_tabla_usuario, name='cargar_tabla_usuario'),
     path("api/guardar-contenido/", views.guardar_contenido_multiple, name="guardar_contenido"),
     path("api/obtener-contenido/", views.obtener_contenido, name="obtener_contenido"),
+    path("api/graficos/", ListaGraficos.as_view(), name="lista_graficos"),
   ]

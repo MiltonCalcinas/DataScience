@@ -411,3 +411,27 @@ def obtener_contenido(request):
         "estadisticas": agrupado.get("estadistica", []),
         "modelos": agrupado.get("modelo", [])
     }, status=200)
+
+
+
+
+
+from .models import Grafico
+from .serializers import GraficoSerializer
+
+class ListaGraficos(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        graficos = Grafico.objects.filter(usuario=request.user)
+        serializer = GraficoSerializer(graficos, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data.copy()
+        data['usuario'] = request.user.id
+        serializer = GraficoSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
