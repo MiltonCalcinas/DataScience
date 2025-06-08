@@ -8,9 +8,9 @@ class UserTableSerializer(serializers.ModelSerializer):
 
 
 
-from .models import Grafico
+# from .models import Grafico
 
-class GraficoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Grafico
-        fields = '__all__'
+# class GraficoSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Grafico
+#         fields = '__all__'

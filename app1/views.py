@@ -416,22 +416,164 @@ def obtener_contenido(request):
 
 
 
-from .models import Grafico
-from .serializers import GraficoSerializer
+# from .models import Grafico
+# from .serializers import GraficoSerializer
 
-class ListaGraficos(APIView):
+# class ListaGraficos(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         graficos = Grafico.objects.filter(usuario=request.user)
+#         serializer = GraficoSerializer(graficos, many=True)
+#         return Response(serializer.data)
+
+#     def post(self, request):
+#         data = request.data.copy()
+#         data['usuario'] = request.user.id
+#         serializer = GraficoSerializer(data=data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=201)
+#         return Response(serializer.errors, status=400)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from rest_framework import status
+from .models import UserTable, TextBox
+
+#@api_view(['POST'])
+class GuardarTextBoxView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        print("Datos recibidos:", request.data)
+        data = request.data
+        user = request.user
+
+        table_name = data.get("table_name")
+        if not table_name:
+            return Response({"error": "Falta el nombre de tabla"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user_table = UserTable.objects.get(user=user, table_name=table_name)
+        except UserTable.DoesNotExist:
+            return Response({"error": "Tabla no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+        required_fields = [
+            "contenedor_nombre", "contenedor_pestana", "contenedor_x", "contenedor_y",
+            "contenedor_ancho", "contenedor_alto", "color_frame", "borde_redondeado",
+             "textbox_contenido", "textbox_negrita",
+            "textbox_tamaño_letra", "textbox_capitalizado", "textbox_underline", "textbox_fuente","textbox_color",'textbox_fondo_color' 
+        ]
+
+        for field in required_fields:
+            if field not in data:
+                return Response({"error": f"Falta el campo: {field}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        textbox, created = TextBox.objects.update_or_create(
+            table=user_table,
+            contenedor_nombre=data["contenedor_nombre"],
+            defaults={
+                "contenedor_pestana": data["contenedor_pestana"],
+                "contenedor_x": data["contenedor_x"],
+                "contenedor_y": data["contenedor_y"],
+                "contenedor_ancho": data["contenedor_ancho"],
+                "contenedor_alto": data["contenedor_alto"],
+                "color_frame": data["color_frame"],
+                "borde_redondeado": data["borde_redondeado"],
+                "textbox_contenido": data["textbox_contenido"],
+                "textbox_negrita": data["textbox_negrita"],
+                "textbox_tamaño_letra": data["textbox_tamaño_letra"],
+                "textbox_capitalizado": data["textbox_capitalizado"],
+                "textbox_underline": data["textbox_underline"],
+                "textbox_fuente": data["textbox_fuente"],
+                "textbox_color": data["textbox_color"],
+                'textbox_fondo_color':data['textbox_fondo_color']
+            }
+        )
+        print("-- ✅ Texbox guardado con exito")
+        return Response({
+            "status": "ok",
+            "created": created,
+            "id": textbox.id
+        }, status=status.HTTP_200_OK)
+
+
+
+class ObtenerTextBoxesView(APIView):
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        graficos = Grafico.objects.filter(usuario=request.user)
-        serializer = GraficoSerializer(graficos, many=True)
-        return Response(serializer.data)
+        user = request.user
+        table_name = request.query_params.get("table_name")
+        if not table_name:
+            return Response({"error": "Falta el nombre de tabla"}, status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request):
-        data = request.data.copy()
-        data['usuario'] = request.user.id
-        serializer = GraficoSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        try:
+            user_table = UserTable.objects.get(user=user, table_name=table_name)
+        except UserTable.DoesNotExist:
+            return Response({"error": "Tabla no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
+        textboxes = TextBox.objects.filter(table=user_table)
+        data = []
+        for tb in textboxes:
+            data.append({
+                "id": tb.id,
+                "contenedor_nombre": tb.contenedor_nombre,
+                "contenedor_pestana": tb.contenedor_pestana,
+                "contenedor_x": tb.contenedor_x,
+                "contenedor_y": tb.contenedor_y,
+                "contenedor_ancho": tb.contenedor_ancho,
+                "contenedor_alto": tb.contenedor_alto,
+                "color_frame": tb.color_frame,
+                "borde_redondeado": tb.borde_redondeado,
+                "textbox_contenido": tb.textbox_contenido,
+                "textbox_negrita": tb.textbox_negrita,
+                "textbox_tamaño_letra": tb.textbox_tamaño_letra,
+                "textbox_capitalizado": tb.textbox_capitalizado,
+                "textbox_underline": tb.textbox_underline,
+                "textbox_fuente": tb.textbox_fuente,
+                "textbox_color": tb.textbox_color,
+                'textbox_fondo_color':tb.textbox_fondo_color
+            })
+        print("-- ✅ Texboxes obtenido con exito")
+        return Response(data, status=status.HTTP_200_OK)
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def eliminar_textbox(request):
+    table_name = request.data.get('table_name')
+    contenedor_nombre = request.data.get('contenedor_nombre')
+    user = request.user  # Usuario autenticado
+
+    if not table_name or not contenedor_nombre:
+        return Response({"detail": "Faltan parámetros: table_name o contenedor_nombre"}, status=400)
+
+    # Obtener la tabla del usuario
+    try:
+        user_table = user.tables.get(table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"detail": "No existe la tabla especificada"}, status=404)
+
+    # Buscar el TextBox por contenedor_nombre y la tabla
+    try:
+        textbox = TextBox.objects.get(table=user_table, contenedor_nombre=contenedor_nombre)
+    except TextBox.DoesNotExist:
+        return Response({"detail": "No se encontró el TextBox especificado"}, status=404)
+
+    # Eliminar el TextBox
+    textbox.delete()
+
+    return Response({"detail": "TextBox eliminado correctamente"}, status=204)
+
