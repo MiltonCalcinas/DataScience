@@ -577,3 +577,117 @@ def eliminar_textbox(request):
 
     return Response({"detail": "TextBox eliminado correctamente"}, status=204)
 
+
+
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Grafico, UserTable
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def guardar_grafico(request):
+    user = request.user
+    data = request.data
+
+    table_name = data.get('table_name')
+    contenedor_nombre = data.get('contenedor_nombre')
+
+    if not table_name or not contenedor_nombre:
+        return Response({"detail": "Faltan parámetros"}, status=400)
+
+    try:
+        user_table = user.tables.get(table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"detail": "Tabla no encontrada"}, status=404)
+
+    grafico, created = Grafico.objects.update_or_create(
+        table=user_table,
+        contenedor_nombre=contenedor_nombre,
+        defaults={
+            'contenedor_pestana': data.get('contenedor_pestana'),
+            'contenedor_x': data.get('contenedor_x'),
+            'contenedor_y': data.get('contenedor_y'),
+            'contenedor_ancho': data.get('contenedor_ancho'),
+            'contenedor_alto': data.get('contenedor_alto'),
+            'borde_redondeado':data.get('borde_redondeado'),
+            'tipo_grafico': data.get('tipo_grafico'),
+            'var_x': data.get('var_x', None),
+            'var_y': data.get('var_y'),
+            'color_relleno':data.get('color_relleno'),
+            'color_texto': data.get('color_texto'),
+            #'datos': data.get('datos'),
+            #'opciones': data.get('opciones'),  # Si usas este campo, mantén o quita según tu modelo
+        }
+    )
+
+    return Response({"detail": "Gráfico guardado correctamente", "created": created})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def obtener_graficos(request):
+    user = request.user
+    table_name = request.query_params.get('table_name')
+
+    if not table_name:
+        return Response({"detail": "Falta parámetro table_name"}, status=400)
+
+    try:
+        user_table = user.tables.get(table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"detail": "Tabla no encontrada"}, status=404)
+
+    graficos = Grafico.objects.filter(table=user_table)
+    resultados = []
+    for g in graficos:
+        resultados.append({
+            "contenedor_nombre": g.contenedor_nombre,
+            "contenedor_pestana": g.contenedor_pestana,
+            "contenedor_x": g.contenedor_x,
+            "contenedor_y": g.contenedor_y,
+            "contenedor_ancho": g.contenedor_ancho,
+            "contenedor_alto": g.contenedor_alto,
+            'borde_redondeado':g.borde_redondeado,
+            "tipo_grafico": g.tipo_grafico,
+            "var_x": g.var_x,
+            "var_y": g.var_y,
+            'color_relleno':g.color_relleno,
+            "color_texto": g.color_texto,
+
+        })
+
+    return Response(resultados)
+
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Grafico, UserTable
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def eliminar_grafico(request):
+    user = request.user
+    data = request.data
+
+    table_name = data.get('table_name')
+    contenedor_nombre = data.get('contenedor_nombre')
+
+    if not table_name or not contenedor_nombre:
+        return Response({"detail": "Faltan parámetros"}, status=400)
+
+    try:
+        user_table = user.tables.get(table_name=table_name)
+    except UserTable.DoesNotExist:
+        return Response({"detail": "Tabla no encontrada"}, status=404)
+
+    try:
+        grafico = Grafico.objects.get(table=user_table, contenedor_nombre=contenedor_nombre)
+        grafico.delete()
+        return Response({"detail": "Gráfico eliminado correctamente"}, status=200)
+    except Grafico.DoesNotExist:
+        return Response({"detail": "Gráfico no encontrado"}, status=404)

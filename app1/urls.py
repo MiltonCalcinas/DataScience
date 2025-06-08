@@ -32,8 +32,11 @@ urlpatterns= [
     path('api/cargar-tabla-usuario/', views.cargar_tabla_usuario, name='cargar_tabla_usuario'),
     path("api/guardar-contenido/", views.guardar_contenido_multiple, name="guardar_contenido"),
     path("api/obtener-contenido/", views.obtener_contenido, name="obtener_contenido"),
-   # path("api/graficos/", ListaGraficos.as_view(), name="lista_graficos"),
     path('api/guardar_textbox/',GuardarTextBoxView.as_view(),name='guardar_textbox'),
     path('api/obtener_textboxes/',ObtenerTextBoxesView.as_view(),name='obtener_textboxes'),
-    path('eliminar_textbox/',views.eliminar_textbox,name='eliminar_textbox')
+    path('eliminar_textbox/',views.eliminar_textbox,name='eliminar_textbox'),
+    path('guardar_grafico/',views.guardar_grafico,name='guardar_grafico'),
+    path('obtener_graficos/',views.obtener_graficos,name='obtener_graficos'),
+    path('eliminar_grafico/', views.eliminar_grafico, name='eliminar_grafico'),
+
   ]

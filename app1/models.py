@@ -67,3 +67,23 @@ class TextBox(models.Model):
     def __str__(self):
         return f"{self.contenedor_nombre} en {self.contenedor_pestana}"
 
+
+
+class Grafico(models.Model):
+    table = models.ForeignKey(UserTable, on_delete=models.CASCADE)
+    contenedor_nombre = models.CharField(max_length=100)
+    contenedor_pestana = models.CharField(max_length=100)
+    contenedor_x = models.IntegerField()
+    contenedor_y = models.IntegerField()
+    contenedor_ancho = models.IntegerField()
+    contenedor_alto = models.IntegerField()
+    borde_redondeado =  models.IntegerField()
+    tipo_grafico = models.CharField(max_length=50)  # ej: 'barra', 'linea', 'pastel', etc.
+    var_x = models.CharField(max_length=100, blank=True, null=True)   
+    var_y = models.CharField(max_length=100)
+    color_relleno = models.CharField(max_length=100)
+    color_texto = models.CharField(max_length=100)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.contenedor_nombre} ({self.tipo_grafico}) en {self.contenedor_pestana}"
